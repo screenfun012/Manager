@@ -1,0 +1,935 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #111827;
+  color: #ffffff;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #111827;
+  border-radius: 8px;
+  border: 1px solid #374151;
+}
+
+.header {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  color: white;
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-bottom: 3px solid #dc2626;
+}
+
+.header h1 {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  text-align: center;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.logo-container:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.header-tabs {
+  display: flex;
+  background: #374151;
+  border-radius: 12px;
+  padding: 0.25rem;
+  gap: 0.25rem;
+  border: 1px solid #4b5563;
+  overflow-x: auto;
+}
+
+.header-tab {
+  background: #4b5563;
+  color: #d1d5db;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-tab:hover {
+  background: #6b7280;
+  color: #f9fafb;
+}
+
+.header-tab.active {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+  border: 1px solid #dc2626;
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.company-logo {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-fallback {
+  display: none;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+}
+
+.card {
+  background: #1f2937;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 2px solid #374151;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(220, 38, 38, 0.2);
+  border-color: #dc2626;
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.card h2 {
+  color: #ffffff;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border-bottom: 2px solid #dc2626;
+  padding-bottom: 0.5rem;
+}
+
+.btn {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #dc2626;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background: #64748b;
+}
+
+.btn-secondary:hover {
+  background: #475569;
+  box-shadow: 0 8px 25px rgba(100, 116, 139, 0.3);
+}
+
+.btn-danger {
+  background: #ef4444;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.table-container {
+  overflow-x: auto !important;
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Table Styles Update */
+.table {
+  background: #1f2937;
+  color: #ffffff;
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px solid #374151;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table th {
+  background: #374151;
+  color: #ffffff;
+  border-bottom: 2px solid #dc2626;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.table td {
+  border-bottom: 1px solid #4b5563;
+  color: #ffffff;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+/* Status stilovi */
+.status-ok {
+  color: #10b981 !important;
+  font-weight: 600;
+}
+
+.status-nedostatno {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+/* Low stock indicator stilovi */
+.low-stock-indicator {
+  background: #dc2626;
+  color: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: pulse 2s infinite;
+}
+
+.low-stock-count {
+  background: #ffffff;
+  color: #dc2626;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.table tbody tr {
+  background: #1f2937 !important;
+}
+
+.table tbody tr:hover {
+  background: #1f2937 !important;
+}
+
+.input-cell {
+  width: 80px !important;
+  text-align: center !important;
+  border: 1px solid #475569 !important;
+  border-radius: 4px !important;
+  padding: 0.25rem !important;
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.input-cell:focus {
+  outline: none !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1) !important;
+  background: #334155 !important;
+  color: #ffffff !important;
+  outline: 2px solid #dc2626 !important;
+  outline-offset: 2px !important;
+}
+
+/* Override Bootstrap input stilova */
+.form-control,
+.form-control:focus,
+.form-control:active {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #475569 !important;
+}
+
+.form-control:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1) !important;
+}
+
+.category-header {
+  background: #374151 !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+}
+
+.category-header:hover {
+  background: #374151 !important;
+}
+
+.material-row {
+  background: #1f2937 !important;
+}
+
+.material-row:hover {
+  background: #1f2937 !important;
+}
+
+.total-row {
+  background: #374151 !important;
+  font-weight: 700;
+}
+
+.total-row:hover {
+  background: #374151 !important;
+}
+
+.total-row td {
+  color: #ffffff !important;
+  font-weight: 700;
+  padding: 1rem 0.75rem;
+}
+
+.overall-total-row {
+  background: #1f2937 !important;
+  font-weight: 700;
+}
+
+.overall-total-row:hover {
+  background: #1f2937 !important;
+}
+
+.inventory-row:hover {
+  background: #1f2937 !important;
+}
+
+.overall-total-row td {
+  color: #ffffff !important;
+  font-weight: 700;
+  padding: 1rem 0.75rem;
+  font-size: 1.1rem;
+}
+
+.upload-area {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  background: #f8fafc;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-area:hover {
+  border-color: #dc2626;
+  background: #f1f5f9;
+}
+
+.upload-area.dragover {
+  border-color: #dc2626;
+  background: #eff6ff;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+  border-color: #dc2626;
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.stat-icon {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  min-width: 60px;
+  height: 60px;
+}
+
+.stat-content {
+  flex: 1;
+  text-align: left;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+  line-height: 1;
+}
+
+.stat-label {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Tab Styles */
+.tabs-container {
+  margin-bottom: 2rem;
+}
+
+.tabs {
+  display: flex;
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 0.5rem;
+  gap: 0.25rem;
+  border: 1px solid #334155;
+  overflow-x: auto;
+}
+
+.tab {
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.tab:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.tab.active {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  color: white;
+  box-shadow: 0 4px 20px rgba(30, 64, 175, 0.3);
+  border: 1px solid #3b82f6;
+}
+
+/* Table Styles Update */
+.table {
+  background: #1f2937;
+  color: #ffffff;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table th {
+  background: #374151;
+  color: #f9fafb;
+  border-bottom: 2px solid #dc2626;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.table td {
+  border-bottom: 1px solid #4b5563;
+  color: #f9fafb;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.table tbody tr {
+  background: #1f2937;
+}
+
+.table tbody tr:hover {
+  background: #374151;
+}
+
+/* Kategorija header stil */
+.table tr[class*="category-header"] {
+  background: #374151 !important;
+}
+
+.table tr[class*="category-header"] td {
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 1rem 0.75rem;
+}
+
+/* Hover stilovi - UKLONJENI */
+.table tbody tr:hover td {
+  background: #1f2937;
+}
+
+/* Specific styling for total rows */
+.table tr[style*="background: #fef3c7"] td {
+  color: #92400e !important;
+  font-weight: 700;
+}
+
+.table tr[style*="background: #fef3c7"] td strong {
+  color: #92400e !important;
+}
+
+/* Form Controls Update */
+.form-control {
+  background: #334155;
+  border: 2px solid #475569;
+  color: #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Bootstrap Override - potpuno override Bootstrap table stilova */
+.table,
+.table-bordered,
+.table-striped,
+.table-hover,
+.table-sm,
+.table-lg {
+  --bs-table-bg: #1f2937 !important;
+  --bs-table-color: #ffffff !important;
+  --bs-table-border-color: #374151 !important;
+  --bs-table-striped-bg: #1f2937 !important;
+  --bs-table-hover-bg: #374151 !important;
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+  border-color: #374151 !important;
+}
+
+/* Override sve Bootstrap table varijante */
+.table-striped > tbody > tr:nth-of-type(odd) > *,
+.table-striped > tbody > tr:nth-of-type(even) > * {
+  --bs-table-accent-bg: #1f2937 !important;
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+}
+
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: #374151 !important;
+  background-color: #374151 !important;
+  color: #ffffff !important;
+}
+
+/* Override Bootstrap hover za redove */
+.table-hover > tbody > tr:hover {
+  background-color: #1f2937 !important;
+}
+
+.table th {
+  background-color: #374151 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+}
+
+.table td {
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+  border-color: #4b5563 !important;
+}
+
+/* Hover efekat za redove tabele - UKLONJEN jer se preklapa */
+
+/* React Bootstrap Dropdown styling */
+.custom-dropdown .dropdown-toggle {
+  background: #334155;
+  border: 2px solid #475569;
+  color: #e2e8f0;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.custom-dropdown .dropdown-toggle:hover,
+.custom-dropdown .dropdown-toggle:focus {
+  background: #475569;
+  border-color: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+.custom-dropdown .dropdown-menu {
+  background: #1e293b;
+  border: 2px solid #475569;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.custom-dropdown .dropdown-item {
+  color: #e2e8f0;
+  padding: 0.75rem 1rem;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.custom-dropdown .dropdown-item:hover {
+  background: #475569;
+  color: #ffffff;
+}
+
+.custom-dropdown .dropdown-item.active {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* React Bootstrap Dropdown styling */
+.custom-dropdown .dropdown-toggle {
+  background: #334155 !important;
+  border: 2px solid #475569 !important;
+  color: #e2e8f0 !important;
+  width: 100% !important;
+  text-align: left !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+
+.custom-dropdown .dropdown-toggle:hover,
+.custom-dropdown .dropdown-toggle:focus {
+  background: #475569 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1) !important;
+}
+
+.custom-dropdown .dropdown-menu {
+  background: #1e293b !important;
+  border: 2px solid #475569 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.custom-dropdown .dropdown-item {
+  color: #e2e8f0 !important;
+  padding: 0.75rem 1rem !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-dropdown .dropdown-item:hover {
+  background: #475569 !important;
+  color: #ffffff !important;
+}
+
+.custom-dropdown .dropdown-item.active {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* Kada je select u fokusu */
+select.form-control:focus {
+  outline: 2px solid #dc2626 !important;
+  outline-offset: 2px !important;
+  border-color: #dc2626 !important;
+}
+
+select.form-control option {
+  padding: 0.5rem;
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  font-size: 0.9rem;
+}
+
+select.form-control option:hover {
+  background: #475569;
+}
+
+select.form-control option:checked {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* Webkit scrollbar styling za dropdown */
+select.form-control::-webkit-scrollbar {
+  width: 8px;
+}
+
+select.form-control::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+select.form-control::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+select.form-control::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.form-control:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.form-control::placeholder {
+  color: #94a3b8;
+}
+
+/* Stats Update */
+.stat-card {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+.stat-number {
+  color: #ffffff;
+}
+
+.stat-label {
+  color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tabs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .tab {
+    justify-content: center;
+  }
+}
+
+/* Indikator za nisko stanje */
+.low-stock-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-left: 1rem;
+  animation: pulse 2s infinite;
+}
+
+.low-stock-count {
+  background: #ffffff;
+  color: #dc2626;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+
+
+/* Stilizovanje linija u tabeli */
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  position: relative;
+}
+
+
+
+/* Stilizovanje ćelija */
+.table td, .table th {
+  border: none;
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+/* Stilizovanje header-a */
+.table thead th {
+  background: #1f2937;
+  color: #ffffff;
+  font-weight: 600;
+  border-bottom: 2px solid #dc2626;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Word Exporter stilovi */
+.word-exporter {
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.export-word-btn {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  border: none;
+  padding: 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 2px solid transparent;
+  min-height: 120px;
+  justify-content: center;
+  width: 100%;
+}
+
+.export-word-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  border-color: #ffffff;
+}
+
+.export-word-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.export-word-btn div {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.export-word-btn small {
+  font-weight: 400;
+  opacity: 0.9;
+  text-align: center;
+}
