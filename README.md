@@ -10,10 +10,13 @@ Moderno web rešenje za upravljanje i praćenje potrošnog materijala, inspirisa
 - **Dodavanje Novih Materijala**: Jednostavno dodavanje novih stavki u sistem
 - **Automatski Kalkulacije**: Sumiranje po kategorijama i datumu
 - **Responsive Design**: Moderna i intuitivna korisnička interfejs
+- **SQL Baza Podataka**: Brza i efikasna SQLite baza sa REST API
 
 ## 🛠️ Tehnologije
 
 - **Frontend**: React 18
+- **Backend**: Node.js + Express
+- **Baza Podataka**: SQLite sa indeksima
 - **Styling**: CSS3 sa modernim dizajnom
 - **Excel Processing**: SheetJS (xlsx)
 - **Icons**: Lucide React
@@ -21,23 +24,45 @@ Moderno web rešenje za upravljanje i praćenje potrošnog materijala, inspirisa
 
 ## 📦 Instalacija
 
-1. **Klonirajte repozitorijum**:
-   ```bash
-   git clone <repository-url>
-   cd potrosni-materijal-app
-   ```
+### 1. Frontend (React)
+```bash
+# Klonirajte repozitorijum
+git clone <repository-url>
+cd potrosni-materijal-app
 
-2. **Instalirajte zavisnosti**:
-   ```bash
-   npm install
-   ```
+# Instalirajte zavisnosti
+npm install
 
-3. **Pokrenite aplikaciju**:
-   ```bash
-   npm start
-   ```
+# Pokrenite frontend
+npm start
+```
 
-4. **Otvorite u browseru**: `http://localhost:3000`
+### 2. Backend (Node.js + SQLite)
+```bash
+# Idite u backend folder
+cd backend
+
+# Instalirajte zavisnosti
+npm install
+
+# Pokrenite backend server
+npm run dev
+
+# Opciono: Pokrenite migraciju podataka
+npm run migrate
+```
+
+## 🌐 Pokretanje Aplikacije
+
+### Frontend
+- **URL**: `http://localhost:3000`
+- **Port**: 3000
+- **Status**: React aplikacija
+
+### Backend API
+- **URL**: `http://localhost:5001/api`
+- **Port**: 5001
+- **Status**: Express server sa SQLite bazom
 
 ## 📊 Kako Koristiti
 
@@ -65,24 +90,50 @@ Moderno web rešenje za upravljanje i praćenje potrošnog materijala, inspirisa
 - Kliknite na "Izvezi Excel" za preuzimanje trenutnih podataka
 - Podaci se izvode u Excel format sa istom strukturom
 
-## 🗂️ Struktura Podataka
+## 🗄️ Struktura Podataka
 
-Aplikacija koristi sledeću strukturu podataka:
+### SQLite Baza
+Aplikacija koristi SQLite bazu sa sledećim tabelama:
 
-```javascript
-{
-  id: 1,
-  category: 'POTROSNI MATERIJAL',
-  name: 'nitro razredjivac pentico',
-  quantities: {
-    '01.08.': 5,
-    '04.08.': 6,
-    '05.08.': 5,
-    // ... ostali datumi
-  },
-  total: 16
-}
+```sql
+-- Tabela materijala
+CREATE TABLE materials (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL,
+  name TEXT NOT NULL,
+  stockQuantity INTEGER DEFAULT 0,
+  unit TEXT DEFAULT 'kom',
+  minStock INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela zaposlenih
+CREATE TABLE employees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  department TEXT NOT NULL,
+  position TEXT NOT NULL,
+  phone TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela zaduženja
+CREATE TABLE assignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  material_id INTEGER,
+  employee_id INTEGER,
+  quantity INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (material_id) REFERENCES materials (id),
+  FOREIGN KEY (employee_id) REFERENCES employees (id)
+);
 ```
+
+### Indeksi za Performanse
+- `idx_materials_category` - Brže pretrage po kategoriji
+- `idx_assignments_date` - Brže pretrage po datumu
+- `idx_employees_department` - Brže pretrage po odeljenju
 
 ## 📅 Datumi
 
@@ -117,6 +168,12 @@ const sampleCategories = [
 ];
 ```
 
+### Backend Konfiguracija
+U `backend/server.js` možete promeniti port:
+```javascript
+const PORT = process.env.PORT || 5001;
+```
+
 ## 📱 Responsive Design
 
 Aplikacija je optimizovana za:
@@ -126,13 +183,36 @@ Aplikacija je optimizovana za:
 
 ## 🚀 Deployment
 
-Za produkciju:
-
+### Frontend
 ```bash
 npm run build
 ```
-
 Build folder možete deployovati na bilo koji statički hosting servis.
+
+### Backend
+```bash
+# Production
+npm start
+
+# Ili sa PM2
+pm2 start server.js --name "potrosni-materijal-api"
+```
+
+## 🔄 API Endpoints
+
+### Materijali
+- `GET /api/materials` - Učitaj sve materijale
+- `POST /api/materials` - Dodaj novi materijal
+- `PUT /api/materials/:id` - Ažuriraj materijal
+- `DELETE /api/materials/:id` - Obriši materijal
+
+### Zaposleni
+- `GET /api/employees` - Učitaj sve zaposlene
+- `POST /api/employees` - Dodaj novog zaposlenog
+
+### Statistike
+- `GET /api/stats/overview` - Pregled statistika
+- `GET /api/health` - Health check
 
 ## 🤝 Doprinosi
 
@@ -152,4 +232,4 @@ Za pitanja ili probleme, otvorite issue na GitHub-u ili kontaktirajte developmen
 
 ---
 
-**Napomena**: Ova aplikacija je demo verzija namenjena testiranju i implementaciji novih funkcionalnosti.
+**Napomena**: Ova aplikacija je demo verzija namenjena testiranju i implementaciji novih funkcionalnosti. Sada koristi SQLite bazu podataka za bolje performanse i skalabilnost.

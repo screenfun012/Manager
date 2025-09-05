@@ -1,26 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Header from './components/Header';
 import StatsOverview from './components/StatsOverview';
 import MaterialsTable from './components/MaterialsTable';
 import ExcelUploader from './components/ExcelUploader';
 import AddMaterialForm from './components/AddMaterialForm';
 import MaterialAssignmentForm from './components/MaterialAssignmentForm';
-import EditMaterialForm from './components/EditMaterialForm';
+// import EditMaterialForm from './components/EditMaterialForm'; // Temporarily unused
 import WordExporter from './components/WordExporter';
-import Dropdown from 'react-bootstrap/Dropdown';
-import DropdownButton from 'react-bootstrap/DropdownButton';
-import { Plus, FileSpreadsheet, FileText, UserCheck, AlertTriangle, Search, Target, Calendar, Building2, User, Download, Upload, FileDown, FileUp, Settings, Database } from 'lucide-react';
+import SimpleAdminPanel from './components/SimpleAdminPanel';
+import FantasticalCalendar from './components/FantasticalCalendar';
+import DetailedExport from './components/DetailedExport';
+
+
+import { Plus, FileSpreadsheet, FileText, UserCheck, AlertTriangle, Search, Upload, FileDown, Database, RefreshCw, Loader2, RotateCcw, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import * as XLSX from 'xlsx';
+import { materialsAPI, employeesAPI, assignmentsAPI, loadDataWithFallback, fallbackData, getDatabaseInfo } from './services/api';
+import eventBus, { EVENTS } from './services/eventBus';
+import { 
+  getDefaultCurrentMonthPeriod, 
+  getDefaultPreviousMonthPeriod, 
+  getDefaultNextMonthPeriod,
+  shouldAutoSwitchToNewMonth,
+  emitMonthChangedEvent,
+  formatDateForAPI,
+  getCurrentMonthName,
+  getCurrentBelgradeDate
+} from './services/dateUtils';
+import { saveAsWorkflow, showToast } from './services/fileUtils';
+import offlineQueueService from './services/offlineQueue';
 
 // Sample data arrays - premestam izvan komponente da ne bi se redefinisali pri svakom renderovanju
 const sampleCategories = [
   'POTROSNI MATERIJAL',
-  'ZASTITNA OPREMA', 
+  'ZASTITNA OPREMA',
   'MESINGANE CETKE',
   'HIGIJENA',
   'AMBALAZA',
   'ALAT'
+];
+
+// Mesec nazivi na srpskom
+const monthNames = [
+  'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
+  'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'
 ];
 
 const sampleDepartments = [
@@ -41,78 +64,49 @@ const sampleUsers = [
   'Jelena Marković'
 ];
 
-// Baza potrošnog materijala sa količinama na stanju
-const materialsDatabase = [
-    // POTROSNI MATERIJAL
-    { id: 1, category: 'POTROSNI MATERIJAL', name: 'nitro razredjivac pentico', stockQuantity: 50, unit: 'kom', minStock: 10 },
-    { id: 2, category: 'POTROSNI MATERIJAL', name: 'odmascivac forch eco 500ml', stockQuantity: 100, unit: 'kom', minStock: 20 },
-    { id: 3, category: 'POTROSNI MATERIJAL', name: 'crni silikon DIHT MASA CRNA DIRKO 320C', stockQuantity: 25, unit: 'kom', minStock: 5 },
-    { id: 4, category: 'POTROSNI MATERIJAL', name: 'nalepnice', stockQuantity: 1000, unit: 'kom', minStock: 100 },
-    { id: 5, category: 'POTROSNI MATERIJAL', name: 'KARTICA KLIPNJACA', stockQuantity: 200, unit: 'kom', minStock: 50 },
-    { id: 6, category: 'POTROSNI MATERIJAL', name: 'KARTICA BLOK', stockQuantity: 150, unit: 'kom', minStock: 30 },
-    { id: 7, category: 'POTROSNI MATERIJAL', name: 'KARTICA RADILICA', stockQuantity: 120, unit: 'kom', minStock: 25 },
-    { id: 8, category: 'POTROSNI MATERIJAL', name: 'KARTICA GLAVA', stockQuantity: 80, unit: 'kom', minStock: 15 },
-    { id: 9, category: 'POTROSNI MATERIJAL', name: 'tocak fi 125 fiksni', stockQuantity: 15, unit: 'kom', minStock: 3 },
-    { id: 10, category: 'POTROSNI MATERIJAL', name: 'wd 40 400ml sprej', stockQuantity: 30, unit: 'kom', minStock: 8 },
-    { id: 11, category: 'POTROSNI MATERIJAL', name: 'CINK-ALUMINIJUM ZASTITNA BOJA SREBRNA hmt', stockQuantity: 40, unit: 'kom', minStock: 10 },
-    { id: 12, category: 'POTROSNI MATERIJAL', name: 'sprej sivi ral 9006', stockQuantity: 35, unit: 'kom', minStock: 8 },
-    { id: 13, category: 'POTROSNI MATERIJAL', name: 'crni sprej ral 9005', stockQuantity: 45, unit: 'kom', minStock: 10 },
-    { id: 14, category: 'POTROSNI MATERIJAL', name: 'sprej 7016', stockQuantity: 25, unit: 'kom', minStock: 5 },
-    { id: 15, category: 'POTROSNI MATERIJAL', name: 'nitro emajl crni', stockQuantity: 30, unit: 'kom', minStock: 8 },
-    { id: 16, category: 'POTROSNI MATERIJAL', name: 'prasak ex-270 25kg', stockQuantity: 8, unit: 'kom', minStock: 2 },
-    { id: 17, category: 'POTROSNI MATERIJAL', name: 'lepak k122 (lepak za cepove)', stockQuantity: 20, unit: 'kom', minStock: 5 },
-    { id: 18, category: 'POTROSNI MATERIJAL', name: 'LEPAK K118 (LEPAK ZA NAVOJE)', stockQuantity: 15, unit: 'kom', minStock: 4 },
-    { id: 19, category: 'POTROSNI MATERIJAL', name: 'smirgla 320 superflex platno', stockQuantity: 50, unit: 'kom', minStock: 10 },
-    { id: 20, category: 'POTROSNI MATERIJAL', name: 'smirgla 220 superflex', stockQuantity: 40, unit: 'kom', minStock: 8 },
-    
-    // ZASTITNA OPREMA
-    { id: 21, category: 'ZASTITNA OPREMA', name: 'rukavice radne', stockQuantity: 200, unit: 'par', minStock: 50 },
-    { id: 22, category: 'ZASTITNA OPREMA', name: 'naočare zaštitne', stockQuantity: 30, unit: 'kom', minStock: 10 },
-    { id: 23, category: 'ZASTITNA OPREMA', name: 'kaciga zaštitna', stockQuantity: 25, unit: 'kom', minStock: 5 },
-    { id: 24, category: 'ZASTITNA OPREMA', name: 'maska za lice', stockQuantity: 150, unit: 'kom', minStock: 30 },
-    { id: 25, category: 'ZASTITNA OPREMA', name: 'čizme radne', stockQuantity: 20, unit: 'par', minStock: 5 },
-    
-    // MESINGANE CETKE
-    { id: 26, category: 'MESINGANE CETKE', name: 'cetka mesingana 2"', stockQuantity: 15, unit: 'kom', minStock: 3 },
-    { id: 27, category: 'MESINGANE CETKE', name: 'cetka mesingana 1"', stockQuantity: 20, unit: 'kom', minStock: 5 },
-    { id: 28, category: 'MESINGANE CETKE', name: 'cetka mesingana 3"', stockQuantity: 10, unit: 'kom', minStock: 2 },
-    
-    // HIGIJENA
-    { id: 29, category: 'HIGIJENA', name: 'sapun za ruke', stockQuantity: 50, unit: 'kom', minStock: 10 },
-    { id: 30, category: 'HIGIJENA', name: 'papir za ruke', stockQuantity: 100, unit: 'rola', minStock: 20 },
-    { id: 31, category: 'HIGIJENA', name: 'dezinfekcija za ruke', stockQuantity: 25, unit: 'kom', minStock: 5 },
-    
-    // AMBALAZA
-    { id: 32, category: 'AMBALAZA', name: 'kartonske kutije', stockQuantity: 200, unit: 'kom', minStock: 50 },
-    { id: 33, category: 'AMBALAZA', name: 'folija stretch', stockQuantity: 30, unit: 'rola', minStock: 8 },
-    { id: 34, category: 'AMBALAZA', name: 'selotejp', stockQuantity: 100, unit: 'kom', minStock: 20 },
-    
-    // ALAT
-    { id: 35, category: 'ALAT', name: 'ključ 17', stockQuantity: 8, unit: 'kom', minStock: 2 },
-    { id: 36, category: 'ALAT', name: 'ključ 19', stockQuantity: 6, unit: 'kom', minStock: 2 },
-    { id: 37, category: 'ALAT', name: 'odvijač Philips', stockQuantity: 12, unit: 'kom', minStock: 3 },
-    { id: 38, category: 'ALAT', name: 'čekić 1kg', stockQuantity: 5, unit: 'kom', minStock: 1 },
-    { id: 39, category: 'ALAT', name: 'pinceta', stockQuantity: 15, unit: 'kom', minStock: 3 }
-  ];
+// Fallback podaci za slučaj da API nije dostupan
+const fallbackMaterials = fallbackData.materials;
+const fallbackEmployees = fallbackData.employees;
 
-// Baza zaposlenih radnika
-const employeesDatabase = [
-  { id: 1, name: 'Marko Petrović', department: 'Proizvodnja', position: 'Proizvodni radnik', phone: '061-123-456' },
-  { id: 2, name: 'Ana Jovanović', department: 'Proizvodnja', position: 'Proizvodni radnik', phone: '061-234-567' },
-  { id: 3, name: 'Petar Nikolić', department: 'Održavanje', position: 'Mehaničar', phone: '061-345-678' },
-  { id: 4, name: 'Marija Đorđević', department: 'Održavanje', position: 'Električar', phone: '061-456-789' },
-  { id: 5, name: 'Stefan Stojanović', department: 'Kontrola kvaliteta', position: 'Kontrolor kvaliteta', phone: '061-567-890' },
-  { id: 6, name: 'Jelena Marković', department: 'Kontrola kvaliteta', position: 'Kontrolor kvaliteta', phone: '061-678-901' },
-  { id: 7, name: 'Dragan Simić', department: 'Logistika', position: 'Logističar', phone: '061-789-012' },
-  { id: 8, name: 'Snežana Popović', department: 'Logistika', position: 'Skladištar', phone: '061-890-123' },
-  { id: 9, name: 'Milan Đukić', department: 'Administracija', position: 'Administrativni radnik', phone: '061-901-234' },
-  { id: 10, name: 'Jovana Stanković', department: 'IT Odeljenje', position: 'IT tehničar', phone: '061-012-345' },
-  { id: 11, name: 'Perica Perić', department: 'Proizvodnja', position: 'Proizvodni radnik', phone: '061-111-222' },
-  { id: 12, name: 'Mira Mirić', department: 'Održavanje', position: 'Mehaničar', phone: '061-222-333' },
-  { id: 13, name: 'Zoran Zorić', department: 'Kontrola kvaliteta', position: 'Kontrolor kvaliteta', phone: '061-333-444' },
-  { id: 14, name: 'Ljiljana Ljiljić', department: 'Logistika', position: 'Logističar', phone: '061-444-555' },
-  { id: 15, name: 'Branko Brankić', department: 'Administracija', position: 'Administrativni radnik', phone: '061-555-666' }
-];
+// Funkcija za konvertovanje zaduženja u materijale za dashboard
+const processAssignmentsToMaterials = (assignments, materialsDB, employeesDB) => {
+  const materialMap = new Map();
+  
+  assignments.forEach(assignment => {
+    const material = materialsDB.find(m => m.id === assignment.material_id);
+    const employee = employeesDB.find(e => e.id === assignment.employee_id);
+    
+    if (material && employee) {
+      const key = `${material.id}-${employee.department}`;
+      
+      if (!materialMap.has(key)) {
+        materialMap.set(key, {
+          id: material.id,
+          category: material.category,
+          name: material.name,
+          department: employee.department,
+          assignedTo: employee.name,
+          quantities: {},
+          total: 0
+        });
+      }
+      
+      const materialData = materialMap.get(key);
+      const dateKey = new Date(assignment.created_at).toLocaleDateString('sr-RS', { 
+        day: '2-digit', 
+        month: '2-digit' 
+      });
+      
+      if (!materialData.quantities[dateKey]) {
+        materialData.quantities[dateKey] = 0;
+      }
+      materialData.quantities[dateKey] += assignment.quantity;
+      materialData.total += assignment.quantity;
+    }
+  });
+  
+  return Array.from(materialMap.values());
+};
 
 function App() {
   const [materials, setMaterials] = useState([]);
@@ -121,8 +115,39 @@ function App() {
   const [users, setUsers] = useState([]); // Nova state varijabla
   const [materialsDB, setMaterialsDB] = useState([]); // Baza materijala
   const [employeesDB, setEmployeesDB] = useState([]); // Baza zaposlenih
+  const [assignments, setAssignments] = useState([]); // Zaduženja
   const [selectedMonth] = useState('08');
   const [selectedYear] = useState('2024');
+  
+  // State za trenutni mesec i godinu
+  const [currentMonth, setCurrentMonth] = useState(8); // Septembar (0-based)
+  const [currentYear, setCurrentYear] = useState(2025);
+  
+  // Kreiranje period objekta na osnovu state-a
+  const currentMonthPeriod = {
+    from: new Date(currentYear, currentMonth, 1),
+    to: new Date(currentYear, currentMonth + 1, 0),
+    label: `${monthNames[currentMonth]} ${currentYear}`
+  };
+
+  // Funkcija za navigaciju kroz mesece
+  const handleMonthChange = (direction) => {
+    if (direction === 'previous') {
+      if (currentMonth === 0) {
+        setCurrentMonth(11);
+        setCurrentYear(currentYear - 1);
+      } else {
+        setCurrentMonth(currentMonth - 1);
+      }
+    } else if (direction === 'next') {
+      if (currentMonth === 11) {
+        setCurrentMonth(0);
+        setCurrentYear(currentYear + 1);
+      } else {
+        setCurrentMonth(currentMonth + 1);
+      }
+    }
+  };
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAssignmentForm, setShowAssignmentForm] = useState(false); // Forma za zaduženje
   const [activeTab, setActiveTab] = useState('dashboard'); // Aktivni tab
@@ -131,6 +156,16 @@ function App() {
   const [exportDepartment, setExportDepartment] = useState(''); // Filter za export po odeljenju
   const [exportEmployee, setExportEmployee] = useState(''); // Filter za export po radniku
   const [exportFormat, setExportFormat] = useState('excel'); // Format za export (excel/word)
+  const [exportDateFrom, setExportDateFrom] = useState(''); // Filter za export od datuma
+  const [exportDateTo, setExportDateTo] = useState(''); // Filter za export do datuma
+  const [exportCategory, setExportCategory] = useState(''); // Filter za export po kategoriji
+  const [isLoading, setIsLoading] = useState(true); // Loading state za API pozive
+  const [apiError, setApiError] = useState(null); // Error state za API greške
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true); // Automatsko osvežavanje
+  const [lastRefreshTime, setLastRefreshTime] = useState(null); // Vreme poslednjeg osvežavanja
+  const [isOffline, setIsOffline] = useState(!navigator.onLine); // Offline status
+  const [offlineQueueStats, setOfflineQueueStats] = useState({ total: 0, pending: 0, failed: 0 }); // Offline queue statistike
+
 
   // Trenutni materijali u sistemu (sa zaduženjima)
   const sampleMaterials = [
@@ -234,42 +269,175 @@ function App() {
     setCategories(sampleCategories);
     setDepartments(sampleDepartments);
     setUsers(sampleUsers);
-    setEmployeesDB(employeesDatabase);
     
-    // Učitavam sačuvano stanje magacina iz localStorage
-    const savedMaterialsDB = localStorage.getItem('materialsDB');
-    if (savedMaterialsDB) {
-      try {
-        const parsedMaterialsDB = JSON.parse(savedMaterialsDB);
-        console.log('🔍 Učitavam sačuvano stanje magacina iz localStorage:', parsedMaterialsDB);
-        setMaterialsDB(parsedMaterialsDB);
-      } catch (error) {
-        console.error('🔍 Greška pri učitavanju stanja magacina iz localStorage:', error);
-        setMaterialsDB(materialsDatabase);
-      }
-    } else {
-      // Ako nema sačuvanih podataka, koristim sample podatke
-      console.log('🔍 Nema sačuvanog stanja magacina, koristim sample podatke');
-      setMaterialsDB(materialsDatabase);
-    }
+    // Uklonjeno automatsko prebacivanje na novi mesec
     
-    // Učitavam sačuvane materijale iz localStorage
-    const savedMaterials = localStorage.getItem('potrosniMaterijal');
-    if (savedMaterials) {
+    // Uklonjen event listener za promenu meseca
+    
+    // Učitavanje podataka iz API-ja sa fallback-om
+    const loadData = async () => {
       try {
-        const parsedMaterials = JSON.parse(savedMaterials);
-        console.log('🔍 Učitavam sačuvane materijale iz localStorage:', parsedMaterials);
-        setMaterials(parsedMaterials);
+        setIsLoading(true);
+        setApiError(null);
+        console.log('🔄 Učitavam podatke iz API-ja...');
+        
+        // Učitavanje materijala iz API-ja
+        const materialsData = await loadDataWithFallback(
+          () => materialsAPI.getAll(),
+          fallbackMaterials
+        );
+        setMaterialsDB(materialsData);
+        console.log('✅ Materijali učitani:', materialsData.length);
+        
+        // Učitavanje zaposlenih iz API-ja
+        const employeesData = await loadDataWithFallback(
+          () => employeesAPI.getAll(),
+          fallbackEmployees
+        );
+        setEmployeesDB(employeesData);
+        console.log('✅ Zaposleni učitani:', employeesData.length);
+        
+        // Učitavanje zaduženja iz API-ja
+        const assignmentsData = await loadDataWithFallback(
+          () => assignmentsAPI.getAll(),
+          []
+        );
+        setAssignments(assignmentsData);
+        console.log('✅ Zaduženja učitana:', assignmentsData.length);
+        
+        // Generisanje materijala za dashboard na osnovu zaduženja
+        const processedMaterials = processAssignmentsToMaterials(assignmentsData, materialsData, employeesData);
+        setMaterials(processedMaterials);
+        console.log('✅ Materijali za dashboard generisani:', processedMaterials.length);
+        
       } catch (error) {
-        console.error('🔍 Greška pri učitavanju iz localStorage:', error);
-        setMaterials(sampleMaterials);
+        console.error('❌ Greška pri učitavanju podataka:', error);
+        setApiError(error.message);
+        // Fallback na statičke podatke
+        setMaterialsDB(fallbackMaterials);
+        setEmployeesDB(fallbackEmployees);
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      // Ako nema sačuvanih podataka, koristim sample podatke
-      console.log('🔍 Nema sačuvanih podataka, koristim sample podatke');
-      setMaterials(sampleMaterials);
-    }
+    };
+    
+    loadData();
+    
+    return () => {
+      // Uklonjen cleanup za event listener
+    };
   }, []); // Empty dependency array since these are static arrays
+
+  // useEffect za automatsko osvežavanje (dinamički)
+  useEffect(() => {
+    let autoRefreshInterval;
+    
+    if (autoRefreshEnabled) {
+      console.log('🔄 Uključujem automatsko osvežavanje podataka...');
+      autoRefreshInterval = setInterval(autoRefreshData, 5 * 60 * 1000); // 5 minuta
+    }
+    
+    // Cleanup interval-a kada se komponenta unmount-uje ili se promeni autoRefreshEnabled
+    return () => {
+      if (autoRefreshInterval) {
+        console.log('⏸️ Isključujem automatsko osvežavanje podataka...');
+        clearInterval(autoRefreshInterval);
+      }
+    };
+  }, [autoRefreshEnabled]); // Dependency na autoRefreshEnabled
+
+  // useEffect za Service Worker registraciju
+  useEffect(() => {
+    const registerServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          console.log('🔄 Registrujem Service Worker...');
+          
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('✅ Service Worker registrovan:', registration);
+          
+          // Proveri da li je Service Worker aktivan
+          if (registration.active) {
+            console.log('✅ Service Worker aktivan');
+          }
+          
+          // Event listeneri za Service Worker
+          registration.addEventListener('updatefound', () => {
+            console.log('🔄 Service Worker update pronađen');
+          });
+          
+        } catch (error) {
+          console.error('❌ Greška pri registraciji Service Worker-a:', error);
+        }
+      } else {
+        console.log('⚠️ Service Worker nije podržan u ovom browser-u');
+      }
+    };
+    
+    registerServiceWorker();
+  }, []);
+
+  // useEffect za offline status i queue monitoring
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('🌐 Online - konekcija vraćena');
+      setIsOffline(false);
+    };
+
+    const handleOffline = () => {
+      console.log('📡 Offline - konekcija izgubljena');
+      setIsOffline(true);
+    };
+
+    const updateQueueStats = () => {
+      const stats = offlineQueueService.getQueueStats();
+      setOfflineQueueStats(stats);
+    };
+
+    // Event listeneri
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Periodično ažuriranje queue statistika
+    const statsInterval = setInterval(updateQueueStats, 5000);
+    
+    // Inicijalno ažuriranje
+    updateQueueStats();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(statsInterval);
+    };
+  }, []);
+
+  // useEffect za slušanje ažuriranja zaposlenih iz Admin Panel-a
+  useEffect(() => {
+    const handleEmployeeUpdated = (data) => {
+      console.log('🔄 Employee updated event received:', data);
+      // Ažuriraj employeesDB sa novim podacima
+      if (data.employee) {
+        setEmployeesDB(prev => {
+          const existingIndex = prev.findIndex(emp => emp.id === data.employee.id);
+          if (existingIndex !== -1) {
+            // Ažuriraj postojećeg zaposlenog
+            const updated = [...prev];
+            updated[existingIndex] = data.employee;
+            return updated;
+          } else {
+            // Dodaj novog zaposlenog
+            return [...prev, data.employee];
+          }
+        });
+      }
+    };
+
+    const unsubscribeEmployeeUpdated = eventBus.subscribe(EVENTS.EMPLOYEE_UPDATED, handleEmployeeUpdated);
+
+    return () => {
+      unsubscribeEmployeeUpdated();
+    };
+  }, []);
 
 
 
@@ -279,8 +447,8 @@ function App() {
     // Here you would process the Excel data and update the state
   };
 
-  // Funkcije za filtriranje materijala
-  const getFilteredMaterials = () => {
+  // Funkcije za filtriranje materijala (optimizovane sa useMemo)
+  const getFilteredMaterials = useMemo(() => {
     if (!searchTerm.trim()) {
       return materials;
     }
@@ -290,9 +458,9 @@ function App() {
       material.assignedTo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       material.department.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  };
+  }, [materials, searchTerm]);
 
-  const getFilteredMaterialsDB = () => {
+  const getFilteredMaterialsDB = useMemo(() => {
     if (!inventorySearchTerm.trim()) {
       return materialsDB;
     }
@@ -300,11 +468,12 @@ function App() {
       material.name.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
       material.category.toLowerCase().includes(inventorySearchTerm.toLowerCase())
     );
-  };
+  }, [materialsDB, inventorySearchTerm]);
 
   // Funkcije za filtriranje podataka za export
   const getFilteredDataForExport = (department = '', employee = '') => {
-    let filteredMaterials = [...materials];
+    // Koristimo materialsDB umesto materials za konzistentnost
+    let filteredMaterials = [...materialsDB];
 
     if (department) {
       filteredMaterials = filteredMaterials.filter(material => material.department === department);
@@ -318,65 +487,96 @@ function App() {
   };
 
   // Funkcija za export po odeljenju
-  const exportByDepartment = (department) => {
+  const exportByDepartment = async (department) => {
     const filteredData = getFilteredDataForExport(department, '');
-    exportToExcel(filteredData, `Materijali_${department}_${selectedMonth}_${selectedYear}`);
+    await exportToExcel(filteredData, `Materijali_${department}_${currentMonthPeriod.from.getMonth() + 1}_${currentMonthPeriod.from.getFullYear()}`);
   };
 
   // Funkcija za export po radniku
-  const exportByEmployee = (employee) => {
+  const exportByEmployee = async (employee) => {
     const filteredData = getFilteredDataForExport('', employee);
-    exportToExcel(filteredData, `Materijali_${employee}_${selectedMonth}_${selectedYear}`);
+    await exportToExcel(filteredData, `Materijali_${employee}_${currentMonthPeriod.from.getMonth() + 1}_${currentMonthPeriod.from.getFullYear()}`);
   };
 
   // Funkcija za export svih podataka
-  const exportAllData = () => {
-    exportToExcel(materials, `Svi_Materijali_${selectedMonth}_${selectedYear}`);
+  const exportAllData = async () => {
+    await exportToExcel(materials, `Svi_Materijali_${currentMonthPeriod.from.getMonth() + 1}_${currentMonthPeriod.from.getFullYear()}`);
   };
 
-  const handleAddMaterial = (newMaterial) => {
+  const handleAddMaterial = async (newMaterial) => {
     console.log('🔍 Dodavanje materijala:', newMaterial);
 
-    // Prvo ažuriramo stanje u magacinu (materialsDB)
-    setMaterialsDB(prevMaterialsDB => {
-      const existingMaterialIndex = prevMaterialsDB.findIndex(
+    try {
+      setIsLoading(true);
+      setApiError(null);
+
+      // Prvo ažuriramo stanje u magacinu (materialsDB) preko API-ja
+      const existingMaterial = materialsDB.find(
         material => material.name.toLowerCase() === newMaterial.name.toLowerCase() &&
                    material.category === newMaterial.category
       );
 
-      let updatedMaterialsDB;
-
-      if (existingMaterialIndex !== -1) {
+      if (existingMaterial) {
         // Materijal već postoji - povećavamo količinu na stanju
-        updatedMaterialsDB = prevMaterialsDB.map((material, index) => {
-          if (index === existingMaterialIndex) {
-            const newStockQuantity = material.stockQuantity + newMaterial.quantity;
-            console.log(`🔍 Povećavam stanje za "${material.name}" sa ${material.stockQuantity} na ${newStockQuantity}`);
-            return {
-              ...material,
-              stockQuantity: newStockQuantity
-            };
-          }
-          return material;
+        const updatedMaterial = {
+          ...existingMaterial,
+          stockQuantity: (existingMaterial?.stockQuantity || 0) + newMaterial.stockQuantity
+        };
+        
+        console.log(`🔍 Povećavam stanje za "${existingMaterial?.name}" sa ${existingMaterial?.stockQuantity || 0} na ${updatedMaterial.stockQuantity}`);
+        
+        // Ažuriram preko API-ja
+        await materialsAPI.update(existingMaterial.id, updatedMaterial);
+        
+        // Ažuriram lokalni state
+        setMaterialsDB(prev => {
+          const updated = prev.map(m => 
+            m.id === existingMaterial.id ? updatedMaterial : m
+          );
+          console.log('🔍 AdminDashboard: materialsDB updated in handleAddMaterial (existing), new length:', updated.length);
+          console.log('🔍 AdminDashboard: Updated material:', updatedMaterial);
+          return updated;
+        });
+        
+        // Emituj event za admin panel
+        eventBus.emit(EVENTS.MATERIAL_UPDATED, {
+          material: updatedMaterial,
+          timestamp: new Date().toISOString()
         });
       } else {
-        // Novi materijal - dodajemo ga u magacin sa početnim stanjem
+        // Novi materijal - dodajemo ga u magacin preko API-ja
         const newMaterialForDB = {
-          id: Date.now(),
           category: newMaterial.category,
           name: newMaterial.name,
-          stockQuantity: newMaterial.quantity,
+          stockQuantity: newMaterial.stockQuantity,
           unit: newMaterial.unit,
-          minStock: Math.max(1, Math.floor(newMaterial.quantity * 0.2)) // 20% od početne količine kao minimalno
+          minStock: newMaterial.minStock || Math.max(1, Math.floor(newMaterial.stockQuantity * 0.2)) // 20% od početne količine kao minimalno
         };
-        updatedMaterialsDB = [...prevMaterialsDB, newMaterialForDB];
-        console.log(`🔍 Dodajem novi materijal "${newMaterial.name}" u magacin sa stanjem ${newMaterial.quantity}`);
+        
+        console.log(`🔍 Dodajem novi materijal "${newMaterial.name}" u magacin sa stanjem ${newMaterial.stockQuantity}`);
+        
+        // Dodajem preko API-ja
+        const createdMaterial = await materialsAPI.create(newMaterialForDB);
+        
+        // Ažuriram lokalni state
+        setMaterialsDB(prev => {
+          const updated = [...prev, createdMaterial];
+          console.log('🔍 App.js: materialsDB updated in handleAddMaterial, new length:', updated.length);
+          console.log('🔍 App.js: New material added:', createdMaterial);
+          console.log('🔍 App.js: All materialsDB items:', updated.map(m => ({ id: m.id, name: m.name, created_at: m.created_at })));
+          return updated;
+        });
+        
+        // Emituj event za admin panel
+        console.log('🚨🚨🚨 App.js: EMITTING MATERIAL_CREATED EVENT! 🚨🚨🚨');
+        console.log('🔍 App.js: Event data:', createdMaterial);
+        console.log('🔍 App.js: Event timestamp:', new Date().toISOString());
+        eventBus.emit(EVENTS.MATERIAL_CREATED, {
+          material: createdMaterial,
+          timestamp: new Date().toISOString()
+        });
+        console.log('🚨🚨🚨 App.js: MATERIAL_CREATED EVENT EMITTED! 🚨🚨🚨');
       }
-
-      // Čuvam ažurirano stanje magacina u localStorage
-      saveMaterialsDBToLocalStorage(updatedMaterialsDB);
-      return updatedMaterialsDB;
-    });
 
     // Sada dodajemo/ažuriramo materijal u listu za praćenje potrošnje
     setMaterials(prev => {
@@ -397,11 +597,11 @@ function App() {
             const currentDate = new Date().toLocaleDateString('sr-RS').split('.').slice(0, 2).join('.');
             const updatedQuantities = {
               ...material.quantities,
-              [currentDate]: (material.quantities[currentDate] || 0) + newMaterial.quantity
+              [currentDate]: (material.quantities[currentDate] || 0) + newMaterial.stockQuantity
             };
             const newTotal = Object.values(updatedQuantities).reduce((sum, qty) => sum + qty, 0);
 
-            console.log(`🔍 Dodajem ${newMaterial.quantity} komada na postojeći materijal "${material.name}" za datum ${currentDate}`);
+            console.log(`🔍 Dodajem ${newMaterial.stockQuantity} komada na postojeći materijal "${material.name}" za datum ${currentDate}`);
             return {
               ...material,
               quantities: updatedQuantities,
@@ -418,18 +618,18 @@ function App() {
           ...newMaterial,
           id: Date.now(),
           quantities: {},
-          total: newMaterial.quantity,
+          total: newMaterial.stockQuantity,
           assignmentDate: currentDate
         };
 
         // Initialize quantities for all dates
         const dates = generateDatesForMonth(selectedMonth, selectedYear);
         dates.forEach(date => {
-          material.quantities[date] = date === currentDate ? newMaterial.quantity : 0;
+          material.quantities[date] = date === currentDate ? newMaterial.stockQuantity : 0;
         });
 
         updatedMaterials = [...prev, material];
-        console.log(`🔍 Kreiram novi unos za materijal "${newMaterial.name}" sa ${newMaterial.quantity} komada`);
+        console.log(`🔍 Kreiram novi unos za materijal "${newMaterial.name}" sa ${newMaterial.stockQuantity} komada`);
       }
 
       // Čuvam ažurirane materijale u localStorage
@@ -439,10 +639,18 @@ function App() {
 
     setShowAddForm(false);
     console.log('✓ Materijal uspešno dodat/ažuriran!');
+    
+    } catch (error) {
+      console.error('❌ Greška pri dodavanju materijala:', error);
+      setApiError(`Greška pri dodavanju materijala: ${error.message}`);
+      alert(`Greška pri dodavanju materijala: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Funkcija za zaduženje materijala
-  const handleMaterialAssignment = (assignment) => {
+  const handleMaterialAssignment = async (assignment) => {
     console.log('🔍 ====== POČETAK handleMaterialAssignment ======');
     console.log('🔍 Assignment objekat:', assignment);
     
@@ -458,23 +666,44 @@ function App() {
     console.log('🔍 Date format:', date);
     console.log('🔍 Trenutni datum:', new Date().getDate().toString().padStart(2, '0') + '.' + (new Date().getMonth() + 1).toString().padStart(2, '0') + '.');
     
-    // Ažuriram količinu na stanju
-    setMaterialsDB(prev => {
-      const updatedMaterialsDB = prev.map(m => {
-        if (m.id === materialId) {
-          const newStockQuantity = Math.max(0, m.stockQuantity - quantity);
-          console.log(`🔍 Smanjujem stanje za "${m.name}" sa ${m.stockQuantity} na ${newStockQuantity}`);
-          return {
-            ...m,
-            stockQuantity: newStockQuantity
-          };
-        }
-        return m;
-      });
-      // Čuvam ažurirano stanje magacina u localStorage
-      saveMaterialsDBToLocalStorage(updatedMaterialsDB);
-      return updatedMaterialsDB;
-    });
+    try {
+      setIsLoading(true);
+      setApiError(null);
+      
+      // Ažuriram količinu na stanju preko API-ja
+      const materialToUpdate = materialsDB.find(m => m.id === materialId);
+      if (materialToUpdate) {
+        const newStockQuantity = Math.max(0, (materialToUpdate?.stockQuantity || 0) - quantity);
+        console.log(`🔍 Smanjujem stanje za "${materialToUpdate?.name}" sa ${materialToUpdate?.stockQuantity || 0} na ${newStockQuantity}`);
+        
+        const updatedMaterial = {
+          ...materialToUpdate,
+          stockQuantity: newStockQuantity
+        };
+        
+        // Ažuriram preko API-ja
+        await materialsAPI.update(materialId, updatedMaterial);
+        
+        // Ažuriram lokalni state
+        setMaterialsDB(prev => {
+          const updated = prev.map(m => 
+            m.id === materialId ? updatedMaterial : m
+          );
+          console.log('🔍 AdminDashboard: materialsDB updated in handleMaterialAssignment, new length:', updated.length);
+          return updated;
+        });
+      }
+
+      // Kreiram zaduženje u bazi
+      const assignmentData = {
+        material_id: materialId,
+        employee_id: employee.id,
+        quantity: quantity,
+        date: new Date().toISOString()
+      };
+      
+      await assignmentsAPI.create(assignmentData);
+      console.log('✅ Zaduženje kreirano u bazi:', assignmentData);
 
     // Dodajem zaduženje u materijale
     setMaterials(prev => {
@@ -543,6 +772,29 @@ function App() {
     
     console.log('🔍 Nakon zaduženja, materials state će biti ažuriran');
     
+    // Emituj event za trenutno ažuriranje Admin Panel-a
+    eventBus.emit(EVENTS.ASSIGNMENT_CREATED, {
+      assignment: {
+        materialId,
+        quantity,
+        date,
+        material,
+        employee
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+    eventBus.emit(EVENTS.INVENTORY_UPDATED, {
+      materialId,
+      newStockQuantity: materialToUpdate ? Math.max(0, (materialToUpdate?.stockQuantity || 0) - quantity) : 0,
+      timestamp: new Date().toISOString()
+    });
+    
+    eventBus.emit(EVENTS.ADMIN_REFRESH_NEEDED, {
+      reason: 'assignment_created',
+      timestamp: new Date().toISOString()
+    });
+    
     setShowAssignmentForm(false);
     
     // Automatski prebacujem na početnu tab da korisnik vidi ažuriranje
@@ -550,38 +802,248 @@ function App() {
     
     // Dodajem console.log da vidim da li se state stvarno ažurira
     console.log('🔍 Trenutno materials state NAKON zaduženja:', materials);
+    
+    // Osvežavam sve podatke da se ažuriraju i zaduženja
+    await refreshData();
+    
+    } catch (error) {
+      console.error('❌ Greška pri zaduženju materijala:', error);
+      setApiError(`Greška pri zaduženju materijala: ${error.message}`);
+      alert(`Greška pri zaduženju materijala: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Funkcija za editovanje materijala
-  const handleEditMaterial = (updatedMaterial) => {
-    setMaterials(prev => {
-      const updatedMaterials = prev.map(material => 
-        material.id === updatedMaterial.id ? updatedMaterial : material
-      );
+  const handleEditMaterial = async (updatedMaterial) => {
+    try {
+      setIsLoading(true);
+      setApiError(null);
       
-      // Čuvam ažurirane materijale u localStorage
-      saveMaterialsToLocalStorage(updatedMaterials);
+      // Ažuriram materijal preko API-ja
+      await materialsAPI.update(updatedMaterial.id, updatedMaterial);
       
-      return updatedMaterials;
-    });
-    
-    alert(`Materijal "${updatedMaterial.name}" je uspešno izmenjen!`);
-    
-    // Automatski prebacujem na početnu tab da korisnik vidi ažuriranje
-    setActiveTab('dashboard');
+      // Ažuriram lokalni state
+      setMaterials(prev => {
+        const updatedMaterials = prev.map(material => 
+          material.id === updatedMaterial.id ? updatedMaterial : material
+        );
+        
+        // Čuvam ažurirane materijale u localStorage
+        saveMaterialsToLocalStorage(updatedMaterials);
+        
+        return updatedMaterials;
+      });
+      
+      alert(`Materijal "${updatedMaterial.name}" je uspešno izmenjen!`);
+      
+      // Automatski prebacujem na početnu tab da korisnik vidi ažuriranje
+      setActiveTab('dashboard');
+      
+    } catch (error) {
+      console.error('❌ Greška pri editovanju materijala:', error);
+      setApiError(`Greška pri editovanju materijala: ${error.message}`);
+      alert(`Greška pri editovanju materijala: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Funkcija za promenu tabova
-  const handleTabChange = (tabId) => {
+  // Funkcija za brisanje materijala
+  const handleDeleteMaterial = async (materialId) => {
+    try {
+      setIsLoading(true);
+      setApiError(null);
+      
+      // Brisem materijal preko API-ja
+      await materialsAPI.delete(materialId);
+      
+      // Uklanjam iz lokalnog state-a
+      setMaterialsDB(prev => prev.filter(m => m.id !== materialId));
+      setMaterials(prev => prev.filter(m => m.id !== materialId));
+      
+      // Emituj event za admin panel
+      eventBus.emit(EVENTS.MATERIAL_DELETED, {
+        materialId: materialId,
+        timestamp: new Date().toISOString()
+      });
+      
+      alert('Materijal je uspešno obrisan!');
+      
+    } catch (error) {
+      console.error('❌ Greška pri brisanju materijala:', error);
+      setApiError(`Greška pri brisanju materijala: ${error.message}`);
+      alert(`Greška pri brisanju materijala: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Funkcija za osvežavanje podataka iz API-ja
+  const refreshData = async () => {
+    console.log('🔍 refreshData called - ažuriram sve podatke iz admin dashboard-a');
+    console.log('🔍 refreshData: Current materialsDB length before refresh:', materialsDB.length);
+    try {
+      setIsLoading(true);
+      setApiError(null);
+      console.log('🔄 Osvežavam podatke iz API-ja...');
+      
+      // Učitavam materijale iz API-ja
+      const materialsData = await loadDataWithFallback(
+        () => materialsAPI.getAll(),
+        fallbackMaterials
+      );
+      setMaterialsDB(materialsData);
+      console.log('✅ Materijali osveženi:', materialsData.length);
+      
+      // Učitavam zaposlene iz API-ja
+      const employeesData = await loadDataWithFallback(
+        () => employeesAPI.getAll(),
+        fallbackEmployees
+      );
+      setEmployeesDB(employeesData);
+      console.log('✅ Zaposleni osveženi:', employeesData.length);
+      
+      // Učitavam zaduženja iz API-ja
+      const assignmentsData = await loadDataWithFallback(
+        () => assignmentsAPI.getAll(),
+        []
+      );
+      setAssignments(assignmentsData);
+      console.log('✅ Zaduženja osvežena:', assignmentsData.length);
+      
+      // Generisanje materijala za dashboard na osnovu zaduženja
+      const processedMaterials = processAssignmentsToMaterials(assignmentsData, materialsData, employeesData);
+      setMaterials(processedMaterials);
+      console.log('✅ Materijali za dashboard osveženi:', processedMaterials.length);
+      
+      // Ažuriram dashboard statistike
+      try {
+        const dashboardInfo = await getDatabaseInfo(currentMonthPeriod);
+        console.log('🔄 Dashboard statistike ažurirane:', dashboardInfo);
+        
+        // Emituj event za ažuriranje dashboard statistika
+        eventBus.emit(EVENTS.DATA_SYNC_NEEDED, {
+          reason: 'manual_refresh',
+          timestamp: new Date().toISOString(),
+          materialsCount: materialsData.length,
+          employeesCount: employeesData.length,
+          assignmentsCount: assignmentsData.length,
+          dashboardInfo: dashboardInfo
+        });
+      } catch (error) {
+        console.error('❌ Greška pri ažuriranju dashboard statistika:', error);
+        // Emituj event bez dashboard info
+        eventBus.emit(EVENTS.DATA_SYNC_NEEDED, {
+          reason: 'manual_refresh',
+          timestamp: new Date().toISOString(),
+          materialsCount: materialsData.length,
+          employeesCount: employeesData.length,
+          assignmentsCount: assignmentsData.length
+        });
+      }
+      
+      // Postavljam vreme poslednjeg osvežavanja
+      setLastRefreshTime(new Date());
+      
+    } catch (error) {
+      console.error('❌ Greška pri osvežavanju podataka:', error);
+      setApiError(`Greška pri osvežavanju podataka: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+      console.log('🔍 refreshData: Finished - materialsDB length after refresh:', materialsDB.length);
+      console.log('🔍 refreshData: All materialsDB items after refresh:', materialsDB.map(m => ({ id: m.id, name: m.name, created_at: m.created_at })));
+    }
+  };
+
+  // Funkcija za automatsko osvežavanje podataka
+  const autoRefreshData = async () => {
+    try {
+      console.log('🔄 Automatsko osvežavanje podataka...');
+      
+      // Učitavam materijale iz API-ja (bez loading state-a)
+      const materialsData = await loadDataWithFallback(
+        () => materialsAPI.getAll(),
+        fallbackMaterials
+      );
+      setMaterialsDB(materialsData);
+      
+      // Učitavam zaposlene iz API-ja (bez loading state-a)
+      const employeesData = await loadDataWithFallback(
+        () => employeesAPI.getAll(),
+        fallbackEmployees
+      );
+      setEmployeesDB(employeesData);
+      
+      // Učitavam zaduženja iz API-ja (bez loading state-a)
+      const assignmentsData = await loadDataWithFallback(
+        () => assignmentsAPI.getAll(),
+        []
+      );
+      setAssignments(assignmentsData);
+      
+      // Generisanje materijala za dashboard na osnovu zaduženja
+      const processedMaterials = processAssignmentsToMaterials(assignmentsData, materialsData, employeesData);
+      setMaterials(processedMaterials);
+      
+      // Ažuriram dashboard statistike
+      try {
+        const dashboardInfo = await getDatabaseInfo(currentMonthPeriod);
+        console.log('🔄 Dashboard statistike ažurirane:', dashboardInfo);
+        
+        // Emituj event za ažuriranje dashboard statistika
+        eventBus.emit(EVENTS.DATA_SYNC_NEEDED, {
+          reason: 'auto_refresh',
+          timestamp: new Date().toISOString(),
+          materialsCount: materialsData.length,
+          employeesCount: employeesData.length,
+          assignmentsCount: assignmentsData.length,
+          dashboardInfo: dashboardInfo
+        });
+      } catch (error) {
+        console.error('❌ Greška pri ažuriranju dashboard statistika:', error);
+        // Emituj event bez dashboard info
+        eventBus.emit(EVENTS.DATA_SYNC_NEEDED, {
+          reason: 'auto_refresh',
+          timestamp: new Date().toISOString(),
+          materialsCount: materialsData.length,
+          employeesCount: employeesData.length,
+          assignmentsCount: assignmentsData.length
+        });
+      }
+      
+      // Postavljam vreme poslednjeg osvežavanja
+      setLastRefreshTime(new Date());
+      console.log('✅ Automatsko osvežavanje završeno');
+      
+    } catch (error) {
+      console.error('❌ Greška pri automatskom osvežavanju:', error);
+      // Ne prikazujemo error korisniku za automatsko osvežavanje
+    }
+  };
+
+  // Funkcija za promenu tabova (optimizovana sa useCallback)
+  const handleTabChange = useCallback((tabId) => {
     console.log('🔍 handleTabChange pozvan sa tabId:', tabId);
     console.log('🔍 Trenutno activeTab:', activeTab);
     setActiveTab(tabId);
     console.log('🔍 Postavljam activeTab na:', tabId);
-  };
+  }, [activeTab]);
 
   // Funkcija za export Excel
-  const exportToExcel = (data = materials, fileName = null) => {
+  const exportToExcel = async (data = materials, fileName = null) => {
     console.log('🔍 Export Excel funkcija pozvana sa podacima:', data?.length || 0);
+    console.log('📊 Data type:', Array.isArray(data) ? 'Array' : typeof data);
+    console.log('📋 Sample data:', data?.slice(0, 2)?.map(m => ({
+      id: m?.id,
+      name: m?.name,
+      category: m?.category,
+      stockQuantity: m?.stockQuantity,
+      hasStockQuantity: typeof m?.stockQuantity !== 'undefined',
+      total: m?.total,
+      hasTotal: typeof m?.total !== 'undefined'
+    })));
 
     try {
       // Kreiram workbook i worksheet
@@ -685,14 +1147,28 @@ function App() {
       // Dodajem worksheet u workbook
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Potrošni Materijal');
 
-      // Generišem ime fajla
-      const finalFileName = fileName || `Potrosni_Materijal_${new Date().toLocaleDateString('sr-RS').replace(/\./g, '-')}.xlsx`;
-
-      // Exportujem fajl
-      XLSX.writeFile(workbook, fileName);
-
-      console.log('🔍 Excel fajl uspešno exportovan:', finalFileName);
-      alert(`Excel fajl "${finalFileName}" je uspešno preuzet!\n\nFajl je formatiran za štampanje na A4.`);
+      // Generišem Excel buffer
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      
+      // Koristi Save As dialog
+      const result = await saveAsWorkflow(
+        excelBuffer, 
+        currentMonthPeriod, 
+        'xlsx',
+        [
+          {
+            name: 'Excel Files',
+            extensions: ['xlsx', 'xls']
+          }
+        ]
+      );
+      
+      if (result.success) {
+        showToast(result.message, 'success');
+        console.log('🔍 Excel fajl uspešno exportovan:', result.filePath);
+      } else {
+        throw new Error(result.error);
+      }
 
     } catch (error) {
       console.error('🔍 Greška pri export-u Excel fajla:', error);
@@ -742,10 +1218,10 @@ function App() {
       setMaterialsDB(prev => {
         const updatedMaterialsDB = prev.map(material => {
           if (material.id === materialId) {
-            const newStockQuantity = material.stockQuantity - quantityDifference;
+            const newStockQuantity = (material?.stockQuantity || 0) - quantityDifference;
             console.log('🔍 Ažuriram magacin:', { 
               name: material.name, 
-              oldStock: material.stockQuantity, 
+              oldStock: material?.stockQuantity || 0, 
               newStock: newStockQuantity,
               difference: quantityDifference
             });
@@ -804,16 +1280,34 @@ function App() {
   };
 
   const getDatesForCurrentMonth = () => {
-    return generateDatesForMonth(selectedMonth, selectedYear);
+    return generateDatesForMonth(
+      currentMonthPeriod.from.getMonth() + 1,
+      currentMonthPeriod.from.getFullYear()
+    );
   };
 
   const getTotalForCategory = (category) => {
     return materials
       .filter(material => material.category === category)
-      .reduce((sum, material) => sum + material.total, 0);
+      .reduce((sum, material) => {
+        // Filtriramo količine samo za trenutni period
+        const periodQuantities = Object.keys(material.quantities || {})
+          .filter(date => {
+            const dateObj = new Date(date);
+            return dateObj >= currentMonthPeriod.from && dateObj <= currentMonthPeriod.to;
+          })
+          .reduce((sum, date) => sum + (material.quantities[date] || 0), 0);
+        return sum + periodQuantities;
+      }, 0);
   };
 
   const getTotalForDate = (date) => {
+    // Proveravamo da li datum pripada trenutnom periodu
+    const dateObj = new Date(date);
+    if (dateObj < currentMonthPeriod.from || dateObj > currentMonthPeriod.to) {
+      return 0;
+    }
+
     return materials.reduce((sum, material) => sum + (material.quantities[date] || 0), 0);
   };
 
@@ -823,18 +1317,25 @@ function App() {
 
   // Funkcija za računanje broja materijala sa niskim stanjem
   const getLowStockCount = () => {
-    return materialsDB.filter(material => material.stockQuantity <= material.minStock).length;
+    return materialsDB.filter(material =>
+      (material?.stockQuantity || 0) <= (material?.minStock || 0)
+    ).length;
   };
 
   return (
     <div className="App">
-      <Header 
+
+
+      <Header
         onLogoClick={() => setActiveTab('dashboard')}
         activeTab={activeTab}
         onTabChange={handleTabChange}
         lowStockCount={getLowStockCount()}
+        currentMonth={currentMonth}
+        currentYear={currentYear}
+        onMonthChange={handleMonthChange}
       />
-      
+
       <div className="container">
         
         {/* Dashboard Tab */}
@@ -844,15 +1345,16 @@ function App() {
               totalMaterials={materials.length}
               totalCategories={categories.length}
               overallTotal={getOverallTotal()}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
+              selectedMonth={currentMonthPeriod.from.getMonth() + 1}
+              selectedYear={currentMonthPeriod.from.getFullYear()}
+              currentPeriod={currentMonthPeriod}
             />
 
 
 
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2>Pregled Potrošnog Materijala - Avgust 2024</h2>
+                <h2>Pregled Potrošnog Materijala - {currentMonthPeriod.label}</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                   <div style={{ position: 'relative', width: '250px' }}>
                     <Search size={20} style={{
@@ -883,16 +1385,161 @@ function App() {
                     />
                   </div>
 
+                  {/* Refresh dugme */}
+                  <button
+                    onClick={refreshData}
+                    disabled={isLoading}
+                    className={`refresh-button ${isLoading ? 'loading' : ''}`}
+                    title="Osveži podatke iz baze"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="refresh-icon" size={20} />
+                    ) : (
+                      <RefreshCw className="refresh-icon" size={20} />
+                    )}
+                    <span className="loading-text">
+                      {isLoading ? 'Osvežavam...' : 'Osveži'}
+                    </span>
+                  </button>
+
+                  {/* Auto-refresh toggle */}
+                  <button
+                    onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                    style={{
+                      background: autoRefreshEnabled ? '#dc2626' : '#059669',
+                      border: `2px solid ${autoRefreshEnabled ? '#991b1b' : '#047857'}`,
+                      color: '#ffffff',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      fontSize: '0.8rem',
+                      fontWeight: '600'
+                    }}
+                    title={autoRefreshEnabled ? 'Isključi automatsko osvežavanje' : 'Uključi automatsko osvežavanje'}
+                  >
+                    {autoRefreshEnabled ? '🔄 ON' : '⏸️ OFF'}
+                  </button>
+
+                  {/* Status automatskog osvežavanja */}
+                  {lastRefreshTime && (
+                    <div style={{
+                      background: '#374151',
+                      border: '1px solid #4b5563',
+                      color: '#9ca3af',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span>🕐</span>
+                      <span>Poslednje: {lastRefreshTime.toLocaleTimeString('sr-RS')}</span>
+                    </div>
+                  )}
+
+                  {/* Offline status indikator */}
+                  {isOffline && (
+                    <div style={{
+                      background: '#dc2626',
+                      border: '2px solid #991b1b',
+                      color: '#ffffff',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      animation: 'pulse 2s infinite'
+                    }}>
+                      <span>📡</span>
+                      <span>Offline</span>
+                    </div>
+                  )}
+
+                  {/* Offline queue status */}
+                  {offlineQueueStats.total > 0 && (
+                    <div style={{
+                      background: '#f59e0b',
+                      border: '2px solid #d97706',
+                      color: '#ffffff',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer'
+                    }}
+                    title={`Offline queue: ${offlineQueueStats.pending} pending, ${offlineQueueStats.failed} failed`}
+                    onClick={() => alert(`Offline Queue Status:\n\nPending: ${offlineQueueStats.pending}\nFailed: ${offlineQueueStats.failed}\nTotal: ${offlineQueueStats.total}`)}
+                    >
+                      <span>📝</span>
+                      <span>{offlineQueueStats.total}</span>
+                    </div>
+                  )}
+
                 </div>
               </div>
+
+              {/* Loading i Error States */}
+              {isLoading && (
+                <div style={{
+                  background: '#1e40af',
+                  border: '2px solid #3b82f6',
+                  color: '#ffffff',
+                  padding: '2rem',
+                  borderRadius: '12px',
+                  marginBottom: '2rem',
+                  textAlign: 'center',
+                  fontSize: '1.1rem'
+                }}>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '4px solid #ffffff',
+                      borderTop: '4px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      margin: '0 auto'
+                    }}></div>
+                  </div>
+                  Učitavam podatke iz baze...
+                </div>
+              )}
+
+              {apiError && (
+                <div style={{
+                  background: '#dc2626',
+                  border: '2px solid #991b1b',
+                  color: '#ffffff',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}>
+                  <AlertTriangle size={24} style={{ color: '#ffffff' }} />
+                  <div>
+                    <strong>Greška pri učitavanju podataka:</strong> {apiError}
+                    <br />
+                    <small>Koriste se fallback podaci. Proverite da li je backend server pokrenut.</small>
+                  </div>
+                </div>
+              )}
+
               <div className="materials-table">
                 <MaterialsTable
-                  materials={getFilteredMaterials()}
+                  materials={getFilteredMaterials}
                   dates={getDatesForCurrentMonth()}
                   onQuantityChange={handleQuantityChange}
                   getTotalForCategory={getTotalForCategory}
                   getTotalForDate={getTotalForDate}
                   onEditMaterial={handleEditMaterial}
+                  onDeleteMaterial={handleDeleteMaterial}
                 />
               </div>
             </div>
@@ -937,32 +1584,43 @@ function App() {
                     <th>Jedinica</th>
                     <th>Minimalno Stanje</th>
                     <th>Status</th>
+                    <th>Akcije</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {getFilteredMaterialsDB().map(material => (
+                  {getFilteredMaterialsDB.map(material => (
                     <tr key={material.id} className="inventory-row" style={{
-                      background: material.stockQuantity <= material.minStock ? '#7f1d1d' : '#1e293b',
-                      border: material.stockQuantity <= material.minStock ? '3px solid #dc2626 !important' : '1px solid #4b5563',
-                      boxShadow: material.stockQuantity <= material.minStock ? '0 0 12px rgba(220, 38, 38, 0.6) !important' : 'none',
-                      borderRadius: material.stockQuantity <= material.minStock ? '4px' : '0px'
+                      background: (material?.stockQuantity || 0) <= (material?.minStock || 0) ? '#7f1d1d' : '#1e293b',
+                      border: (material?.stockQuantity || 0) <= (material?.minStock || 0) ? '3px solid #dc2626 !important' : '1px solid #4b5563',
+                      boxShadow: (material?.stockQuantity || 0) <= (material?.minStock || 0) ? '0 0 12px rgba(220, 38, 38, 0.6) !important' : 'none',
+                      borderRadius: (material?.stockQuantity || 0) <= (material?.minStock || 0) ? '4px' : '0px'
                     }}>
                       <td>{material.category}</td>
                       <td>{material.name}</td>
                       <td style={{ 
                         fontWeight: '600',
-                        color: material.stockQuantity <= material.minStock ? '#fca5a5' : '#86efac'
+                        color: (material?.stockQuantity || 0) <= (material?.minStock || 0) ? '#fca5a5' : '#86efac'
                       }}>
-                        {material.stockQuantity}
+                        {(material?.stockQuantity || 0) > 0 ? (material?.stockQuantity || 0) : '/'}
                       </td>
                       <td>{material.unit}</td>
-                      <td>{material.minStock}</td>
+                      <td>{material?.minStock || '/'}</td>
                       <td>
-                        {material.stockQuantity <= material.minStock ? (
+                        {(material?.stockQuantity || 0) <= (material?.minStock || 0) ? (
                           <span style={{ color: '#fca5a5', fontWeight: '600' }}>PORUČI</span>
                         ) : (
                           <span style={{ color: '#86efac', fontWeight: '600' }}>OK</span>
                         )}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                          onClick={() => handleDeleteMaterial(material.id)}
+                          title="Obriši materijal"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1047,25 +1705,6 @@ function App() {
           </div>
         )}
 
-        {/* Reports Tab */}
-        {activeTab === 'reports' && (
-          <motion.div 
-            className="card"
-            whileHover={{ 
-              scale: 1.02,
-              y: -5,
-              boxShadow: "0 8px 25px rgba(220, 38, 38, 0.4)",
-              border: '3px solid #dc2626',
-              backgroundColor: '#dc2626',
-              color: '#ffffff',
-              transition: { duration: 0.2 }
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            <h2>Izveštaji i Analiza</h2>
-            <p>Ovde će biti implementirani detaljni izveštaji o potrošnji materijala.</p>
-          </motion.div>
-        )}
 
         {/* Export Tab */}
         {activeTab === 'export' && (
@@ -1074,6 +1713,15 @@ function App() {
               <Database size={28} style={{ marginRight: '0.75rem', verticalAlign: 'middle', color: '#ffffff' }} />
               Izvoz Podataka i Izveštaji
             </h2>
+
+            {/* Detaljni Export Sistem */}
+            <DetailedExport
+              materials={getFilteredMaterialsDB}
+              employees={employeesDB}
+              currentPeriod={currentMonthPeriod}
+              assignments={materials}
+              getFilteredDataForExport={getFilteredDataForExport}
+            />
 
             {/* Word Export opcije */}
             <div style={{
@@ -1095,10 +1743,11 @@ function App() {
               </h3>
               
               <WordExporter 
-                materials={materials}
-                materialsDB={materialsDB}
-                selectedMonth={selectedMonth}
-                selectedYear={selectedYear}
+                materials={getFilteredMaterials}
+                materialsDB={getFilteredMaterialsDB}
+                selectedMonth={currentMonthPeriod.from.getMonth() + 1}
+                selectedYear={currentMonthPeriod.from.getFullYear()}
+                currentPeriod={currentMonthPeriod}
                 totalMaterials={materials.length}
                 totalCategories={categories.length}
                 overallTotal={getOverallTotal()}
@@ -1160,7 +1809,7 @@ function App() {
 
                 <button
                   className="btn"
-                  onClick={() => exportToExcel(materials, `Potrosni_Materijal_${selectedMonth}_${selectedYear}`)}
+                  onClick={() => exportToExcel(getFilteredMaterials, `Potrosni_Materijal_${currentMonthPeriod.from.getMonth() + 1}_${currentMonthPeriod.from.getFullYear()}`)}
                   style={{
                     background: '#7c3aed',
                     border: '2px solid #6d28d9',
@@ -1179,7 +1828,7 @@ function App() {
 
                 <button
                   className="btn"
-                  onClick={() => exportToExcel(materialsDB, `Magacin_${selectedMonth}_${selectedYear}`)}
+                  onClick={() => exportToExcel(getFilteredMaterialsDB, `Magacin_${currentMonthPeriod.from.getMonth() + 1}_${currentMonthPeriod.from.getFullYear()}`)}
                   style={{
                     background: '#dc2626',
                     border: '2px solid #b91c1c',
@@ -1198,314 +1847,22 @@ function App() {
               </div>
             </div>
 
-            {/* Napredni filteri za export */}
-            <div style={{
-              background: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: '12px',
-              padding: '2rem',
-              marginBottom: '2rem'
-            }}>
-              <h3 style={{
-                color: '#ffffff',
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <Target size={24} style={{ color: '#dc2626' }} />
-                Napredni Export sa Filterima
-              </h3>
 
-              {/* Izbor formata za export */}
-              <div style={{
-                display: 'flex',
-                gap: '1rem',
-                marginBottom: '1.5rem',
-                alignItems: 'center'
-              }}>
-                <span style={{ color: '#ffffff', fontWeight: '600' }}>Format export-a:</span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    className="btn"
-                    onClick={() => setExportFormat('excel')}
-                    style={{
-                      background: exportFormat === 'excel' ? '#059669' : '#374151',
-                      border: `2px solid ${exportFormat === 'excel' ? '#047857' : '#4b5563'}`,
-                      color: '#ffffff',
-                      padding: '0.5rem 1rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    <FileSpreadsheet size={16} style={{ marginRight: '0.5rem' }} />
-                    Excel
-                  </button>
-                  <button
-                    className="btn"
-                    onClick={() => setExportFormat('word')}
-                    style={{
-                      background: exportFormat === 'word' ? '#7c3aed' : '#374151',
-                      border: `2px solid ${exportFormat === 'word' ? '#6d28d9' : '#4b5563'}`,
-                      color: '#ffffff',
-                      padding: '0.5rem 1rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    <FileText size={16} style={{ marginRight: '0.5rem' }} />
-                    Word
-                  </button>
-                </div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-              }}>
-                <div>
-                  <label style={{
-                    color: '#ffffff',
-                    fontWeight: '600',
-                    marginBottom: '0.5rem',
-                    display: 'block'
-                  }}>
-                    <Calendar size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                    Izaberi Period
-                  </label>
-                  <DropdownButton
-                    id="exportPeriod"
-                    title={`${selectedMonth}/${selectedYear}`}
-                    variant="outline-secondary"
-                    style={{
-                      width: '100%',
-                      textAlign: 'left'
-                    }}
-                    className="custom-dropdown"
-                  >
-                    <Dropdown.Item onClick={() => {}}>
-                      Trenutni period: {selectedMonth}/{selectedYear}
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => {}}>
-                      Svi periodi
-                    </Dropdown.Item>
-                  </DropdownButton>
-                </div>
-
-                <div>
-                  <label style={{
-                    color: '#ffffff',
-                    fontWeight: '600',
-                    marginBottom: '0.5rem',
-                    display: 'block'
-                  }}>
-                    <Building2 size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                    Filtriraj po Odeljenju
-                  </label>
-                  <DropdownButton
-                    id="exportDepartment"
-                    title={exportDepartment || "Sva odeljenja"}
-                    variant="outline-secondary"
-                    style={{
-                      width: '100%',
-                      textAlign: 'left'
-                    }}
-                    className="custom-dropdown"
-                  >
-                    <Dropdown.Item
-                      onClick={() => setExportDepartment('')}
-                      style={{
-                        background: '' === exportDepartment ? '#dc2626' : '#334155',
-                        color: '' === exportDepartment ? '#ffffff' : '#e2e8f0',
-                        border: 'none',
-                        padding: '0.5rem 1rem'
-                      }}
-                    >
-                      Sva odeljenja
-                    </Dropdown.Item>
-                    {[...new Set(materials.map(m => m.department))].map(dept => (
-                      <Dropdown.Item
-                        key={dept}
-                        onClick={() => setExportDepartment(dept)}
-                        style={{
-                          background: dept === exportDepartment ? '#dc2626' : '#334155',
-                          color: dept === exportDepartment ? '#ffffff' : '#e2e8f0',
-                          border: 'none',
-                          padding: '0.5rem 1rem'
-                        }}
-                      >
-                        {dept}
-                      </Dropdown.Item>
-                    ))}
-                  </DropdownButton>
-                </div>
-
-                <div>
-                  <label style={{
-                    color: '#ffffff',
-                    fontWeight: '600',
-                    marginBottom: '0.5rem',
-                    display: 'block'
-                  }}>
-                    <User size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                    Filtriraj po Radniku
-                  </label>
-                  <DropdownButton
-                    id="exportEmployee"
-                    title={exportEmployee || "Svi radnici"}
-                    variant="outline-secondary"
-                    style={{
-                      width: '100%',
-                      textAlign: 'left'
-                    }}
-                    className="custom-dropdown"
-                  >
-                    <Dropdown.Item
-                      onClick={() => setExportEmployee('')}
-                      style={{
-                        background: '' === exportEmployee ? '#dc2626' : '#334155',
-                        color: '' === exportEmployee ? '#ffffff' : '#e2e8f0',
-                        border: 'none',
-                        padding: '0.5rem 1rem'
-                      }}
-                    >
-                      Svi radnici
-                    </Dropdown.Item>
-                    {[...new Set(materials.map(m => m.assignedTo))].map(employee => (
-                      <Dropdown.Item
-                        key={employee}
-                        onClick={() => setExportEmployee(employee)}
-                        style={{
-                          background: employee === exportEmployee ? '#dc2626' : '#334155',
-                          color: employee === exportEmployee ? '#ffffff' : '#e2e8f0',
-                          border: 'none',
-                          padding: '0.5rem 1rem'
-                        }}
-                      >
-                        {employee}
-                      </Dropdown.Item>
-                    ))}
-                  </DropdownButton>
-                </div>
-              </div>
-
-              {/* Dugmad za filtrirani export */}
-              <div style={{
-                display: 'flex',
-                gap: '1rem',
-                flexWrap: 'wrap',
-                alignItems: 'center'
-              }}>
-                {exportDepartment && (
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      if (exportFormat === 'excel') {
-                        exportByDepartment(exportDepartment);
-                      } else {
-                        // Word export za odeljenje
-                        if (window.exportFilteredToWord) {
-                          window.exportFilteredToWord('overview', exportDepartment, '');
-                        }
-                      }
-                    }}
-                    style={{
-                      background: exportFormat === 'excel' ? '#dc2626' : '#7c3aed',
-                      border: exportFormat === 'excel' ? '2px solid #b91c1c' : '2px solid #6d28d9',
-                      color: '#ffffff',
-                      padding: '0.75rem 1.5rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    {exportFormat === 'excel' ? <FileSpreadsheet size={20} /> : <FileText size={20} />}
-                    Export: {exportDepartment} ({exportFormat === 'excel' ? 'Excel' : 'Word'})
-                  </button>
-                )}
-
-                {exportEmployee && (
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      if (exportFormat === 'excel') {
-                        exportByEmployee(exportEmployee);
-                      } else {
-                        // Word export za radnika
-                        if (window.exportFilteredToWord) {
-                          window.exportFilteredToWord('overview', '', exportEmployee);
-                        }
-                      }
-                    }}
-                    style={{
-                      background: exportFormat === 'excel' ? '#059669' : '#7c3aed',
-                      border: exportFormat === 'excel' ? '2px solid #047857' : '2px solid #6d28d9',
-                      color: '#ffffff',
-                      padding: '0.75rem 1.5rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    {exportFormat === 'excel' ? <FileSpreadsheet size={20} /> : <FileText size={20} />}
-                    Export: {exportEmployee} ({exportFormat === 'excel' ? 'Excel' : 'Word'})
-                  </button>
-                )}
-
-                {(exportDepartment || exportEmployee) && (
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      const filteredData = getFilteredDataForExport(exportDepartment, exportEmployee);
-                      if (exportFormat === 'excel') {
-                        exportToExcel(filteredData, `Materijali_${exportDepartment || 'Sva'}_${exportEmployee || 'Svi'}_${selectedMonth}_${selectedYear}`);
-                      } else {
-                        // Word export za filtrirane podatke
-                        if (window.exportFilteredToWord) {
-                          window.exportFilteredToWord('overview', exportDepartment, exportEmployee);
-                        }
-                      }
-                    }}
-                    style={{
-                      background: exportFormat === 'excel' ? '#7c3aed' : '#dc2626',
-                      border: exportFormat === 'excel' ? '2px solid #6d28d9' : '2px solid #b91c1c',
-                      color: '#ffffff',
-                      padding: '0.75rem 1.5rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    {exportFormat === 'excel' ? <FileSpreadsheet size={20} /> : <FileText size={20} />}
-                    Export Filtrirano ({exportFormat === 'excel' ? 'Excel' : 'Word'})
-                  </button>
-                )}
-
-                <div style={{
-                  color: '#94a3b8',
-                  fontSize: '0.9rem',
-                  marginLeft: '1rem'
-                }}>
-                  {exportDepartment && exportEmployee ?
-                    `Izabran period: ${selectedMonth}/${selectedYear} | Odeljenje: ${exportDepartment} | Radnik: ${exportEmployee}` :
-                    exportDepartment ?
-                    `Izabran period: ${selectedMonth}/${selectedYear} | Odeljenje: ${exportDepartment}` :
-                    exportEmployee ?
-                    `Izabran period: ${selectedMonth}/${selectedYear} | Radnik: ${exportEmployee}` :
-                    `Izabran period: ${selectedMonth}/${selectedYear}`
-                  }
-                </div>
-              </div>
-            </div>
 
             {/* Dodatne opcije */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: '1rem'
+              gap: '1.5rem'
             }}>
               <div style={{
                 background: '#1f2937',
-                border: '1px solid #374151',
-                borderRadius: '8px',
+                border: '2px solid #374151',
+                borderRadius: '12px',
                 padding: '1.5rem'
               }}>
-                <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>
-                  <Upload size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                <h4 style={{ color: '#ffffff', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>
+                  <Upload size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: '#10b981' }} />
                   Import Podataka
                 </h4>
                 <ExcelUploader onUpload={handleExcelUpload} />
@@ -1513,29 +1870,35 @@ function App() {
 
               <div style={{
                 background: '#1f2937',
-                border: '1px solid #374151',
-                borderRadius: '8px',
+                border: '2px solid #374151',
+                borderRadius: '12px',
                 padding: '1.5rem'
               }}>
-                <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>
-                  <FileDown size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                <h4 style={{ color: '#ffffff', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>
+                  <FileDown size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: '#f59e0b' }} />
                   Šabloni
                 </h4>
                 <p style={{ color: '#94a3b8', marginBottom: '1rem' }}>
                   Preuzmite šablone za unos podataka:
                 </p>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <button
                     className="btn"
                     style={{
                       background: '#374151',
                       border: '2px solid #4b5563',
                       color: '#d1d5db',
-                      padding: '0.5rem 1rem',
-                      fontSize: '0.85rem'
+                      padding: '0.75rem 1.25rem',
+                      fontSize: '0.9rem',
+                      borderRadius: '8px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
                     }}
                   >
-                    <FileSpreadsheet size={16} />
+                    <FileSpreadsheet size={18} />
                     Šablon Materijali
                   </button>
                   <button
@@ -1544,11 +1907,17 @@ function App() {
                       background: '#374151',
                       border: '2px solid #4b5563',
                       color: '#d1d5db',
-                      padding: '0.5rem 1rem',
-                      fontSize: '0.85rem'
+                      padding: '0.75rem 1.25rem',
+                      fontSize: '0.9rem',
+                      borderRadius: '8px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
                     }}
                   >
-                    <FileSpreadsheet size={16} />
+                    <FileSpreadsheet size={18} />
                     Šablon Zaposleni
                   </button>
                 </div>
@@ -1556,6 +1925,38 @@ function App() {
             </div>
           </div>
         )}
+
+
+
+        {/* Calendar Tab */}
+        {activeTab === 'calendar' && (
+          <FantasticalCalendar 
+            selectedPeriod={currentMonthPeriod}
+            onPeriodChange={handleMonthChange}
+            onDateSelect={(date) => {
+              console.log('📅 Izabran datum:', date);
+            }}
+            assignments={materials}
+          />
+        )}
+
+        {/* Admin Panel Tab */}
+        {activeTab === 'admin' && (
+          <div>
+            {console.log('🚨🚨🚨 APP.JS: Rendering SimpleAdminPanel! 🚨🚨🚨')}
+            {console.log('🔍 APP.JS: materialsDB length:', materialsDB.length)}
+            {console.log('🔍 APP.JS: assignments length:', assignments.length)}
+            <SimpleAdminPanel
+              currentPeriod={currentMonthPeriod}
+              materials={materials}
+              materialsDB={materialsDB}
+              employeesDB={employeesDB}
+              assignments={assignments}
+              onRefresh={refreshData}
+            />
+          </div>
+        )}
+
       </div>
     </div>
   );

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline - Potrošni Materijal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            background: rgba(31, 41, 55, 0.8);
+            padding: 3rem 2rem;
+            border-radius: 16px;
+            border: 2px solid #dc2626;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .offline-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            animation: pulse 2s infinite;
+        }
+        
+        .offline-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fca5a5;
+        }
+        
+        .offline-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            color: #d1d5db;
+        }
+        
+        .offline-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #7c3aed;
+            border: 2px solid #6d28d9;
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #6d28d9;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #374151;
+            border-color: #4b5563;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #dc2626;
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #ffffff;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        .cache-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        .cache-info h3 {
+            color: #60a5fa;
+            margin-bottom: 0.5rem;
+        }
+        
+        .cache-list {
+            list-style: none;
+            text-align: left;
+        }
+        
+        .cache-list li {
+            padding: 0.25rem 0;
+            color: #93c5fd;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📡</div>
+        
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            Offline Mode
+        </div>
+        
+        <h1 class="offline-title">Nema Internet Konekcije</h1>
+        
+        <p class="offline-message">
+            Trenutno nema internet konekcije. Aplikacija radi u offline modu koristeći cache-ovane podatke.
+            Neki funkcionalnosti možda neće raditi dok se konekcija ne vrati.
+        </p>
+        
+        <div class="offline-actions">
+            <button class="btn" onclick="window.location.reload()">
+                🔄 Pokušaj ponovo
+            </button>
+            
+            <button class="btn btn-secondary" onclick="checkConnection()">
+                📶 Proveri konekciju
+            </button>
+        </div>
+        
+        <div class="cache-info">
+            <h3>📦 Cache-ovani podaci:</h3>
+            <ul class="cache-list">
+                <li>✅ Osnovna aplikacija</li>
+                <li>✅ Materijali (poslednji update)</li>
+                <li>✅ Zaposleni (poslednji update)</li>
+                <li>✅ Statistike (poslednji update)</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // Provera internet konekcije
+        function checkConnection() {
+            if (navigator.onLine) {
+                alert('Internet konekcija je vraćena! Aplikacija će se automatski osvežiti.');
+                window.location.reload();
+            } else {
+                alert('Još uvek nema internet konekcije. Pokušajte ponovo za nekoliko sekundi.');
+            }
+        }
+        
+        // Automatska provera konekcije
+        window.addEventListener('online', () => {
+            console.log('🌐 Internet konekcija vraćena');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('📡 Internet konekcija izgubljena');
+        });
+        
+        // Periodična provera konekcije
+        setInterval(() => {
+            if (navigator.onLine) {
+                console.log('🌐 Konekcija proverena - online');
+                window.location.reload();
+            }
+        }, 10000); // Proveri svakih 10 sekundi
+        
+        console.log('📱 Offline stranica učitana');
+    </script>
+</body>
+</html>
