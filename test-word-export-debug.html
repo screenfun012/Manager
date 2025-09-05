@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Export Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Word Export Debug Test</h1>
+        <p>Testiranje Word export funkcionalnosti sa debug informacijama</p>
+
+        <button onclick="testWordExportDirect()">📄 Test Word Export (Direct)</button>
+        <button onclick="testDataStructure()">📊 Test Data Structure</button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        // Test data structure
+        const testMaterials = [
+            {
+                id: 9,
+                category: "ALAT",
+                name: "ključ 17",
+                stockQuantity: 2,
+                unit: "kom",
+                minStock: 2,
+                created_at: "2025-08-29 07:49:06"
+            },
+            {
+                id: 8,
+                category: "AMBALAZA",
+                name: "kartonske kutije",
+                stockQuantity: 200,
+                unit: "kom",
+                minStock: 50,
+                created_at: "2025-08-29 07:49:06"
+            }
+        ];
+
+        async function testDataStructure() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '📊 Testing data structure...\n\n';
+
+            try {
+                resultDiv.innerHTML += 'Test materials data:\n';
+                resultDiv.innerHTML += JSON.stringify(testMaterials, null, 2) + '\n\n';
+
+                resultDiv.innerHTML += 'Checking property access:\n';
+                testMaterials.forEach((material, index) => {
+                    resultDiv.innerHTML += `Material ${index + 1}:\n`;
+                    resultDiv.innerHTML += `  - stockQuantity: ${material.stockQuantity} (type: ${typeof material.stockQuantity})\n`;
+                    resultDiv.innerHTML += `  - stockQuantity.toString(): ${material.stockQuantity?.toString()}\n`;
+                    resultDiv.innerHTML += `  - minStock: ${material.minStock} (type: ${typeof material.minStock})\n`;
+                    resultDiv.innerHTML += `  - unit: ${material.unit}\n\n`;
+                });
+
+                resultDiv.className = 'result success';
+
+            } catch (error) {
+                resultDiv.innerHTML += '❌ Error testing data structure: ' + error.message + '\n';
+                resultDiv.innerHTML += 'Stack: ' + error.stack;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testWordExportDirect() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '📄 Testing Word export directly...\n\n';
+
+            try {
+                // Load required libraries
+                if (!window.docx) {
+                    resultDiv.innerHTML += 'Loading docx library...\n';
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = 'https://unpkg.com/docx@9.5.1/build/index.js';
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+                }
+
+                if (!window.saveAs) {
+                    resultDiv.innerHTML += 'Loading file-saver library...\n';
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = 'https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js';
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+                }
+
+                resultDiv.innerHTML += '✅ Libraries loaded\n';
+
+                const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType } = window.docx;
+
+                // Test with safe data access
+                resultDiv.innerHTML += 'Creating document...\n';
+
+                const doc = new Document({
+                    sections: [{
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Test Word Document with Safe Data Access",
+                                        bold: true,
+                                        size: 32,
+                                        font: "Arial"
+                                    })
+                                ]
+                            }),
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: `Found ${testMaterials.length} materials`,
+                                        size: 24,
+                                        font: "Arial"
+                                    })
+                                ]
+                            }),
+                            new Table({
+                                width: {
+                                    size: 100,
+                                    type: WidthType.PERCENTAGE,
+                                },
+                                rows: [
+                                    new TableRow({
+                                        children: [
+                                            new TableCell({
+                                                children: [new Paragraph({ text: "Name" })]
+                                            }),
+                                            new TableCell({
+                                                children: [new Paragraph({ text: "Stock" })]
+                                            }),
+                                            new TableCell({
+                                                children: [new Paragraph({ text: "Unit" })]
+                                            })
+                                        ]
+                                    }),
+                                    ...testMaterials.map(material =>
+                                        new TableRow({
+                                            children: [
+                                                new TableCell({
+                                                    children: [new Paragraph({ text: material?.name || 'N/A' })]
+                                                }),
+                                                new TableCell({
+                                                    children: [new Paragraph({
+                                                        text: (material && typeof material.stockQuantity === 'number' ? material.stockQuantity : 0).toString()
+                                                    })]
+                                                }),
+                                                new TableCell({
+                                                    children: [new Paragraph({ text: material?.unit || 'N/A' })]
+                                                })
+                                            ]
+                                        })
+                                    )
+                                ]
+                            })
+                        ]
+                    }]
+                });
+
+                resultDiv.innerHTML += 'Generating blob...\n';
+                const blob = await Packer.toBlob(doc);
+                resultDiv.innerHTML += 'Saving file...\n';
+                saveAs(blob, 'test-word-export-debug.docx');
+
+                resultDiv.innerHTML += '✅ Word export completed successfully!\n';
+                resultDiv.className = 'result success';
+
+            } catch (error) {
+                resultDiv.innerHTML += '❌ Word export failed: ' + error.message + '\n';
+                resultDiv.innerHTML += 'Stack trace:\n' + error.stack + '\n';
+                resultDiv.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html>

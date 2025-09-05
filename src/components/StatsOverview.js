@@ -3,12 +3,17 @@ import { Package, FolderOpen, BarChart3, Calendar } from 'lucide-react';
 
 const StatsOverview = ({ totalMaterials, totalCategories, overallTotal, selectedMonth, selectedYear }) => {
   const getMonthName = (month) => {
+    // Konvertuj broj u string sa vodećom nulom ako je potrebno
+    const monthStr = typeof month === 'number'
+      ? month.toString().padStart(2, '0')
+      : month.toString();
+
     const months = {
       '01': 'Januar', '02': 'Februar', '03': 'Mart', '04': 'April',
       '05': 'Maj', '06': 'Jun', '07': 'Jul', '08': 'Avgust',
       '09': 'Septembar', '10': 'Oktobar', '11': 'Novembar', '12': 'Decembar'
     };
-    return months[month] || month;
+    return months[monthStr] || monthStr;
   };
 
   return (

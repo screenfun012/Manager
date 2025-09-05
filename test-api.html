@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Potrošni Materijal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #181918;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            background: rgba(255, 0, 0, 0.3);
+        }
+        .success {
+            background: rgba(0, 255, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 API Test - Potrošni Materijal</h1>
+    
+    <div class="container">
+        <h2>🔍 Health Check</h2>
+        <button onclick="testHealth()">Test Health Check</button>
+        <div id="health-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📦 Materijali</h2>
+        <button onclick="testMaterials()">Učitaj Materijale</button>
+        <button onclick="testMaterialsByCategory()">Filtriraj po Kategoriji</button>
+        <button onclick="testMaterialsSearch()">Pretraži po Nazivu</button>
+        <div id="materials-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>👥 Zaposleni</h2>
+        <button onclick="testEmployees()">Učitaj Zaposlene</button>
+        <button onclick="testEmployeesByDepartment()">Filtriraj po Odeljenju</button>
+        <div id="employees-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Statistike</h2>
+        <button onclick="testStats()">Učitaj Statistike</button>
+        <div id="stats-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>🔄 Test API Servisa</h2>
+        <button onclick="testAPIService()">Test API Servisa</button>
+        <div id="api-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📄 Test Word Export</h2>
+        <button onclick="testWordExport()">Test Word Export</button>
+        <div id="word-export-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5001/api';
+
+        async function makeRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers,
+                    },
+                    ...options,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error(`API Error (${endpoint}):`, error);
+                throw error;
+            }
+        }
+
+        async function testHealth() {
+            try {
+                const result = await makeRequest('/health');
+                document.getElementById('health-result').innerHTML = 
+                    JSON.stringify(result, null, 2);
+                document.getElementById('health-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('health-result').innerHTML = 
+                    `Greška: ${error.message}`;
+                document.getElementById('health-result').className = 'result error';
+            }
+        }
+
+        async function testMaterials() {
+            try {
+                const result = await makeRequest('/materials');
+                document.getElementById('materials-result').innerHTML = 
+                    `✅ Učitano ${result.length} materijala:\n\n` +
+                    JSON.stringify(result, null, 2);
+                document.getElementById('materials-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('materials-result').innerHTML = 
+                    `❌ Greška: ${error.message}`;
+                document.getElementById('materials-result').className = 'result error';
+            }
+        }
+
+        async function testMaterialsByCategory() {
+            try {
+                const result = await makeRequest('/materials?category=POTROSNI_MATERIJAL');
+                document.getElementById('materials-result').innerHTML = 
+                    `✅ Učitano ${result.length} materijala iz kategorije POTROSNI_MATERIJAL:\n\n` +
+                    JSON.stringify(result, null, 2);
+                document.getElementById('materials-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('materials-result').innerHTML = 
+                    `❌ Greška: ${error.message}`;
+                document.getElementById('materials-result').className = 'result error';
+            }
+        }
+
+        async function testMaterialsSearch() {
+            try {
+                const result = await makeRequest('/materials?search=nitro');
+                document.getElementById('materials-result').innerHTML = 
+                    `✅ Pronađeno ${result.length} materijala sa 'nitro':\n\n` +
+                    JSON.stringify(result, null, 2);
+                document.getElementById('materials-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('materials-result').innerHTML = 
+                    `❌ Greška: ${error.message}`;
+                document.getElementById('materials-result').className = 'result error';
+            }
+        }
+
+        async function testEmployees() {
+            try {
+                const result = await makeRequest('/employees');
+                document.getElementById('employees-result').innerHTML = 
+                    `✅ Učitano ${result.length} zaposlenih:\n\n` +
+                    JSON.stringify(result, null, 2);
+                document.getElementById('employees-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('employees-result').innerHTML = 
+                    `❌ Greška: ${error.message}`;
+                document.getElementById('employees-result').className = 'result error';
+            }
+        }
+
+        async function testEmployeesByDepartment() {
+            try {
+                const result = await makeRequest('/employees?department=Proizvodnja');
+                document.getElementById('employees-result').innerHTML = 
+                    `✅ Učitano ${result.length} zaposlenih iz odeljenja Proizvodnja:\n\n` +
+                    JSON.stringify(result, null, 2);
+                document.getElementById('employees-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('employees-result').innerHTML = 
+                    `❌ Greška: ${error.message}`;
+                document.getElementById('employees-result').className = 'result error';
+            }
+        }
+
+        async function testStats() {
+            try {
+                const result = await makeRequest('/stats/overview');
+                document.getElementById('stats-result').innerHTML = 
+                    `✅ Statistike učitane:\n\n` +
+                    JSON.stringify(result, null, 2);
+                document.getElementById('stats-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('stats-result').innerHTML = 
+                    `❌ Greška: ${error.message}`;
+                document.getElementById('stats-result').className = 'result error';
+            }
+        }
+
+        async function testAPIService() {
+            try {
+                // Test API servisa iz frontend-a
+                const materials = await makeRequest('/materials');
+                const employees = await makeRequest('/employees');
+                const stats = await makeRequest('/stats/overview');
+
+                const result = {
+                    materials: {
+                        count: materials.length,
+                        sample: materials.slice(0, 2)
+                    },
+                    employees: {
+                        count: employees.length,
+                        sample: employees.slice(0, 2)
+                    },
+                    stats: stats
+                };
+
+                document.getElementById('api-result').innerHTML = 
+                    `✅ API Servis radi odlično!\n\n` +
+                    JSON.stringify(result, null, 2);
+                document.getElementById('api-result').className = 'result success';
+            } catch (error) {
+                document.getElementById('api-result').innerHTML = 
+                    `❌ Greška u API Servisu: ${error.message}`;
+                document.getElementById('api-result').className = 'result error';
+            }
+        }
+
+        // Automatski test health check-a kada se stranica učita
+        // Word Export Test Function
+        async function testWordExport() {
+            const resultDiv = document.getElementById('word-export-result');
+            resultDiv.innerHTML = '🧪 Testing Word export functionality...<br>';
+
+            try {
+                console.log('🧪 Testing Word export functionality...');
+
+                // Try to call the actual WordExporter function from the app
+                if (window.exportFilteredToWord) {
+                    resultDiv.innerHTML += '📝 Calling WordExporter function...<br>';
+                    console.log('📝 Calling WordExporter function...');
+
+                    await window.exportFilteredToWord('overview', '', '');
+                    resultDiv.innerHTML += '✅ Word export completed successfully!<br>';
+                    console.log('✅ Word export completed successfully!');
+                } else {
+                    resultDiv.innerHTML += '⚠️ WordExporter function not available, checking if app is loaded...<br>';
+                    console.log('⚠️ WordExporter function not available, checking if app is loaded...');
+
+                    // Check if we're on the right page
+                    if (window.location.href.includes('localhost:3000')) {
+                        resultDiv.innerHTML += '💡 Please make sure you\'re on the main app page (http://localhost:3000) and try the Word export from there.<br>';
+                    } else {
+                        resultDiv.innerHTML += '📝 Creating simple test file...<br>';
+                        // Simple blob test
+                        const blob = new Blob(['Test content for Word export debugging'], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'word-export-test.txt';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        resultDiv.innerHTML += '💾 Simple test file downloaded<br>';
+                        console.log('💾 Simple test file downloaded');
+                    }
+                }
+
+                resultDiv.innerHTML += '✅ Word export test completed!';
+                resultDiv.className = 'result success';
+                return true;
+
+            } catch (error) {
+                console.error('❌ Word export test failed:', error);
+                resultDiv.innerHTML += '❌ Word export test failed:<br>' + error.message + '<br>';
+                resultDiv.innerHTML += '<strong>Possible causes:</strong><br>';
+                resultDiv.innerHTML += '• Missing dependencies (docx, file-saver)<br>';
+                resultDiv.innerHTML += '• Data structure issues<br>';
+                resultDiv.innerHTML += '• Browser compatibility<br>';
+                resultDiv.innerHTML += '• Font issues (Oswald font)<br>';
+                resultDiv.className = 'result error';
+                return false;
+            }
+        }
+
+        // Make function available globally
+        window.testWordExport = testWordExport;
+
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

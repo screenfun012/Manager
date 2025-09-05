@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Save, X, Edit, User } from 'lucide-react';
+import { Save, X, Edit, User, Trash2 } from 'lucide-react';
 import EditMaterialForm from './EditMaterialForm';
 
 
-const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategory, getTotalForDate, onEditMaterial }) => {
+const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategory, getTotalForDate, onEditMaterial, onDeleteMaterial }) => {
   console.log('🔍 MaterialsTable render - materials prop:', materials);
   console.log('🔍 MaterialsTable render - materials length:', materials.length);
   
@@ -47,6 +47,13 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
     onEditMaterial(updatedMaterial);
     setShowEditForm(false);
     setEditingMaterial(null);
+  };
+
+  const handleDeleteMaterial = (material) => {
+    const confirmed = window.confirm(`Da li ste sigurni da želite da obrišete materijal "${material.name}"?`);
+    if (confirmed && onDeleteMaterial) {
+      onDeleteMaterial(material.id);
+    }
   };
 
   const handleEditCancel = () => {
@@ -184,14 +191,24 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
                     {employee.assignedTo}
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
-                      onClick={() => handleEditMaterial(material)}
-                      title="Izmeni materijal"
-                    >
-                      <Edit size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                        onClick={() => handleEditMaterial(material)}
+                        title="Izmeni materijal"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        className="btn btn-danger"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                        onClick={() => handleDeleteMaterial(material)}
+                        title="Obriši materijal"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                   {dates.map(date => (
                     <td key={date} style={{ textAlign: 'center' }}>

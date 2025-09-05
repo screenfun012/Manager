@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Save, X, Package, Users, Info, AlertTriangle } from 'lucide-react';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
+import eventBus, { EVENTS } from '../services/eventBus';
 
 const MaterialAssignmentForm = ({ 
   materialsDB, 
@@ -45,8 +46,8 @@ const MaterialAssignmentForm = ({
       return;
     }
 
-    if (selectedMaterial && formData.quantity > selectedMaterial.stockQuantity) {
-      alert(`Nema dovoljno materijala na stanju. Dostupno: ${selectedMaterial.stockQuantity} ${selectedMaterial.unit}`);
+    if (selectedMaterial && formData.quantity > (selectedMaterial?.stockQuantity || 0)) {
+      alert(`Nema dovoljno materijala na stanju. Dostupno: ${selectedMaterial?.stockQuantity || 0} ${selectedMaterial?.unit || ''}`);
       return;
     }
 
@@ -58,13 +59,20 @@ const MaterialAssignmentForm = ({
       employee: selectedEmployee
     });
     
-    onAssign({
+    const assignmentData = {
       materialId: parseInt(formData.materialId),
       quantity: parseInt(formData.quantity),
       date: currentDate,
       material: selectedMaterial,
       employee: selectedEmployee
-    });
+    };
+
+    onAssign(assignmentData);
+
+    // Emituj evente za admin panel
+    eventBus.emit(EVENTS.ASSIGNMENT_CREATED, { assignment: assignmentData });
+    eventBus.emit(EVENTS.INVENTORY_UPDATED, { assignment: assignmentData });
+    eventBus.emit(EVENTS.DATA_SYNC_NEEDED, { type: 'assignment_created', data: assignmentData });
 
     // Reset form
     setFormData({
@@ -122,13 +130,13 @@ const MaterialAssignmentForm = ({
                 }}
               >
                 <Package size={16} style={{ marginRight: '0.5rem' }} />
-                {material.name} - Stanje: {material.stockQuantity} {material.unit}
+                {material.name} - Stanje: {material?.stockQuantity || 0} {material?.unit || ''}
               </Dropdown.Item>
             ))}
           </DropdownButton>
           
           {/* Warning za nisko stanje */}
-          {selectedMaterial && selectedMaterial.stockQuantity <= selectedMaterial.minStock && (
+          {selectedMaterial && (selectedMaterial?.stockQuantity || 0) <= (selectedMaterial?.minStock || 0) && (
             <div className="low-stock-warning" style={{
               background: '#7f1d1d',
               border: '1px solid #dc2626',
@@ -194,14 +202,14 @@ const MaterialAssignmentForm = ({
             value={formData.quantity}
             onChange={handleChange}
             min="1"
-            max={selectedMaterial ? selectedMaterial.stockQuantity : undefined}
+            max={selectedMaterial ? (selectedMaterial?.stockQuantity || 0) : undefined}
             style={{
-              borderColor: selectedMaterial && formData.quantity > selectedMaterial.stockQuantity ? '#dc2626' : undefined
+              borderColor: selectedMaterial && formData.quantity > (selectedMaterial?.stockQuantity || 0) ? '#dc2626' : undefined
             }}
           />
           
           {/* Warning za preveliku količinu */}
-          {selectedMaterial && formData.quantity > selectedMaterial.stockQuantity && (
+          {selectedMaterial && formData.quantity > (selectedMaterial?.stockQuantity || 0) && (
             <div className="quantity-warning" style={{
               background: '#7f1d1d',
               border: '1px solid #dc2626',
@@ -215,7 +223,7 @@ const MaterialAssignmentForm = ({
               gap: '0.5rem'
             }}>
               <AlertTriangle size={16} style={{ color: '#fca5a5' }} />
-              <span>Prevelika količina! Dostupno na stanju: {selectedMaterial.stockQuantity} {selectedMaterial.unit}</span>
+              <span>Prevelika količina! Dostupno na stanju: {selectedMaterial?.stockQuantity || 0} {selectedMaterial?.unit || ''}</span>
             </div>
           )}
           
@@ -234,7 +242,7 @@ const MaterialAssignmentForm = ({
               gap: '0.5rem'
             }}>
               <Info size={16} style={{ color: '#60a5fa' }} />
-              <span>Dostupno na stanju: {selectedMaterial.stockQuantity} {selectedMaterial.unit}</span>
+              <span>Dostupno na stanju: {selectedMaterial?.stockQuantity || 0} {selectedMaterial?.unit || ''}</span>
             </div>
           )}
         </div>

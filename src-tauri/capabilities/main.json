@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/@tauri-apps/cli/schema.json",
+  "identifier": "main-capability",
+  "description": "Capability for the main window",
+  "local": true,
+  "windows": ["main"],
+  "permissions": [
+    "core:path:default",
+    "core:event:default",
+    "core:window:default",
+    "core:app:default",
+    "core:resources:default",
+    "core:menu:default",
+    "core:tray:default",
+    "core:webview:default"
+  ],
+  "http": {
+    "scope": ["http://localhost:5001/*", "http://127.0.0.1:5001/*"]
+  }
+}

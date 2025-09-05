@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import { Save, X, Package, Check } from 'lucide-react';
+import eventBus, { EVENTS } from '../services/eventBus';
 
 const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, onCancel }) => {
   const [formData, setFormData] = useState({
     category: categories[0] || '',
     name: '',
     description: '',
-    department: departments[0] || '', // Dodajem odeljenje
-    assignedTo: users[0] || '', // Dodajem korisnika
-    quantity: '', // Dodajem količinu
-    unit: 'kom' // Dodajem jedinicu mere
+    stockQuantity: '',
+    unit: 'kom',
+    minStock: ''
   });
 
   const [useExistingMaterial, setUseExistingMaterial] = useState(false);
@@ -28,30 +28,35 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.category || !formData.name.trim() || !formData.quantity || !formData.unit) {
+    if (!formData.category || !formData.name.trim() || !formData.stockQuantity || !formData.unit) {
       alert('Molimo popunite sva obavezna polja');
       return;
     }
 
-    onAdd({
+    const newMaterial = {
       category: formData.category,
       name: formData.name.trim(),
       description: formData.description.trim(),
-      department: formData.department,
-      assignedTo: formData.assignedTo,
-      quantity: parseInt(formData.quantity),
-      unit: formData.unit
-    });
+      stockQuantity: parseInt(formData.stockQuantity),
+      unit: formData.unit,
+      minStock: parseInt(formData.minStock) || 0
+    };
+
+    onAdd(newMaterial);
+
+    // Emituj event za admin panel
+    eventBus.emit(EVENTS.MATERIAL_CREATED, { material: newMaterial });
+    eventBus.emit(EVENTS.INVENTORY_UPDATED, { material: newMaterial });
+    eventBus.emit(EVENTS.DATA_SYNC_NEEDED, { type: 'material_created', data: newMaterial });
 
     // Reset form
     setFormData({
       category: categories[0] || '',
       name: '',
       description: '',
-      department: departments[0] || '',
-      assignedTo: users[0] || '',
-      quantity: '',
-      unit: 'kom'
+      stockQuantity: '',
+      unit: 'kom',
+      minStock: ''
     });
   };
 
@@ -145,8 +150,9 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
                       ...prev,
                       category: material.category,
                       name: material.name,
-                      department: departments[0] || '',
-                      assignedTo: users[0] || ''
+                      stockQuantity: material.stockQuantity || '',
+                      unit: material.unit || 'kom',
+                      minStock: material.minStock || ''
                     }));
                   }}
                   style={{
@@ -157,7 +163,7 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
                   }}
                 >
                   <Package size={16} style={{ marginRight: '0.5rem' }} />
-                  {material.name} - {material.category} (Stanje: {material.stockQuantity} {material.unit})
+                  {material.name} - {material.category} (Stanje: {material?.stockQuantity || 0} {material?.unit || ''})
                 </Dropdown.Item>
               ))}
             </DropdownButton>
@@ -175,83 +181,44 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
                 <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <Check size={14} style={{ color: '#dc2626' }} />
                   Izabran: <strong style={{ color: '#ffffff' }}>{selectedExistingMaterial.name}</strong>
-                  ({selectedExistingMaterial.category}) - Stanje: {selectedExistingMaterial.stockQuantity} {selectedExistingMaterial.unit}
+                  ({selectedExistingMaterial?.category}) - Stanje: {selectedExistingMaterial?.stockQuantity || 0} {selectedExistingMaterial?.unit || ''}
                 </span>
               </div>
             )}
           </div>
         )}
 
-        {/* Grid layout za kompaktniji prikaz */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: '1rem',
-          marginBottom: '1rem'
-        }}>
-          <div className="form-group">
-            <label htmlFor="category" style={{ color: '#ffffff', marginBottom: '0.5rem', display: 'block' }}>
-              Kategorija *
-            </label>
-            <DropdownButton
-              id="category"
-              title={formData.category || "Izaberi kategoriju"}
-              variant="outline-secondary"
-              style={{ 
-                width: '100%',
-                textAlign: 'left'
-              }}
-              className="custom-dropdown"
-            >
-              {categories.map(category => (
-                <Dropdown.Item 
-                  key={category} 
-                  eventKey={category}
-                  onClick={() => handleChange({ target: { name: 'category', value: category } })}
-                  style={{
-                    background: formData.category === category ? '#dc2626' : '#334155',
-                    color: formData.category === category ? '#ffffff' : '#e2e8f0',
-                    border: 'none',
-                    padding: '0.75rem 1rem'
-                  }}
-                >
-                  {category}
-                </Dropdown.Item>
-              ))}
-            </DropdownButton>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="department" style={{ color: '#ffffff', marginBottom: '0.5rem', display: 'block' }}>
-              Odeljenje *
-            </label>
-            <DropdownButton
-              id="department"
-              title={formData.department || "Izaberi odeljenje"}
-              variant="outline-secondary"
-              style={{ 
-                width: '100%',
-                textAlign: 'left'
-              }}
-              className="custom-dropdown"
-            >
-              {departments.map(dept => (
-                <Dropdown.Item 
-                  key={dept} 
-                  eventKey={dept}
-                  onClick={() => handleChange({ target: { name: 'department', value: dept } })}
-                  style={{
-                    background: formData.department === dept ? '#dc2626' : '#334155',
-                    color: formData.department === dept ? '#ffffff' : '#e2e8f0',
-                    border: 'none',
-                    padding: '0.75rem 1rem'
-                  }}
-                >
-                  {dept}
-                </Dropdown.Item>
-              ))}
-            </DropdownButton>
-          </div>
+        {/* Kategorija */}
+        <div className="form-group" style={{ marginBottom: '1rem' }}>
+          <label htmlFor="category" style={{ color: '#ffffff', marginBottom: '0.5rem', display: 'block' }}>
+            Kategorija *
+          </label>
+          <DropdownButton
+            id="category"
+            title={formData.category || "Izaberi kategoriju"}
+            variant="outline-secondary"
+            style={{ 
+              width: '100%',
+              textAlign: 'left'
+            }}
+            className="custom-dropdown"
+          >
+            {categories.map(category => (
+              <Dropdown.Item 
+                key={category} 
+                eventKey={category}
+                onClick={() => handleChange({ target: { name: 'category', value: category } })}
+                style={{
+                  background: formData.category === category ? '#dc2626' : '#334155',
+                  color: formData.category === category ? '#ffffff' : '#e2e8f0',
+                  border: 'none',
+                  padding: '0.75rem 1rem'
+                }}
+              >
+                {category}
+              </Dropdown.Item>
+            ))}
+          </DropdownButton>
         </div>
 
         <div className="form-group">
@@ -290,23 +257,23 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
         {/* Grid layout za količinu i jedinicu */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
+          gridTemplateColumns: '1fr 1fr 1fr',
           gap: '0.5rem',
           marginBottom: '1rem'
         }}>
           <div className="form-group">
-            <label htmlFor="quantity" style={{ color: '#ffffff', marginBottom: '0.5rem', display: 'block' }}>
-              Količina *
+            <label htmlFor="stockQuantity" style={{ color: '#ffffff', marginBottom: '0.5rem', display: 'block' }}>
+              Početna Količina *
             </label>
             <input
               type="number"
-              id="quantity"
-              name="quantity"
+              id="stockQuantity"
+              name="stockQuantity"
               className="form-control"
-              value={formData.quantity}
+              value={formData.stockQuantity}
               onChange={handleChange}
-              placeholder="Unesite količinu"
-              min="1"
+              placeholder="Unesite početnu količinu"
+              min="0"
               required
             />
           </div>
@@ -342,39 +309,24 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
               ))}
             </DropdownButton>
           </div>
+
+          <div className="form-group">
+            <label htmlFor="minStock" style={{ color: '#ffffff', marginBottom: '0.5rem', display: 'block' }}>
+              Minimalna Količina
+            </label>
+            <input
+              type="number"
+              id="minStock"
+              name="minStock"
+              className="form-control"
+              value={formData.minStock}
+              onChange={handleChange}
+              placeholder="Minimalna količina"
+              min="0"
+            />
+          </div>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="assignedTo" style={{ color: '#ffffff', marginBottom: '0.5rem', display: 'block' }}>
-            Zadužen Korisnik *
-          </label>
-          <DropdownButton
-            id="assignedTo"
-            title={formData.assignedTo || "Izaberi korisnika"}
-            variant="outline-secondary"
-            style={{ 
-              maxWidth: '300px',
-              textAlign: 'left'
-            }}
-            className="custom-dropdown"
-          >
-            {users.map(user => (
-              <Dropdown.Item 
-                key={user} 
-                eventKey={user}
-                onClick={() => handleChange({ target: { name: 'assignedTo', value: user } })}
-                style={{
-                  background: formData.assignedTo === user ? '#dc2626' : '#334155',
-                  color: formData.assignedTo === user ? '#ffffff' : '#e2e8f0',
-                  border: 'none',
-                  padding: '0.75rem 1rem'
-                }}
-              >
-                {user}
-              </Dropdown.Item>
-            ))}
-          </DropdownButton>
-        </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
           <button type="submit" className="btn">
