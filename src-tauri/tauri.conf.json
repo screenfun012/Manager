@@ -44,9 +44,6 @@
     ],
     "resources": [
       "../backend/**/*"
-    ],
-    "externalBin": [
-      "node"
     ]
   }
 }

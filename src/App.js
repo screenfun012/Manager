@@ -7,9 +7,8 @@ import AddMaterialForm from './components/AddMaterialForm';
 import MaterialAssignmentForm from './components/MaterialAssignmentForm';
 // import EditMaterialForm from './components/EditMaterialForm'; // Temporarily unused
 import WordExporter from './components/WordExporter';
-import SimpleAdminPanel from './components/SimpleAdminPanel';
+import AdminPanel from './components/AdminPanel';
 import FantasticalCalendar from './components/FantasticalCalendar';
-import DetailedExport from './components/DetailedExport';
 
 
 import { Plus, FileSpreadsheet, FileText, UserCheck, AlertTriangle, Search, Upload, FileDown, Database, RefreshCw, Loader2, RotateCcw, Trash2 } from 'lucide-react';
@@ -1714,14 +1713,6 @@ function App() {
               Izvoz Podataka i Izveštaji
             </h2>
 
-            {/* Detaljni Export Sistem */}
-            <DetailedExport
-              materials={getFilteredMaterialsDB}
-              employees={employeesDB}
-              currentPeriod={currentMonthPeriod}
-              assignments={materials}
-              getFilteredDataForExport={getFilteredDataForExport}
-            />
 
             {/* Word Export opcije */}
             <div style={{
@@ -1943,10 +1934,7 @@ function App() {
         {/* Admin Panel Tab */}
         {activeTab === 'admin' && (
           <div>
-            {console.log('🚨🚨🚨 APP.JS: Rendering SimpleAdminPanel! 🚨🚨🚨')}
-            {console.log('🔍 APP.JS: materialsDB length:', materialsDB.length)}
-            {console.log('🔍 APP.JS: assignments length:', assignments.length)}
-            <SimpleAdminPanel
+            <AdminPanel
               currentPeriod={currentMonthPeriod}
               materials={materials}
               materialsDB={materialsDB}
