@@ -24,6 +24,7 @@ const AdminLogin = ({ onLogin, isLoading }) => {
     );
 
     if (isValid) {
+      console.log('🔍 AdminLogin: Valid credentials, calling onLogin(true)');
       // Save credentials only if remember me is checked
       if (rememberMe) {
         const hashedPassword = btoa(credentials.password);
@@ -36,6 +37,7 @@ const AdminLogin = ({ onLogin, isLoading }) => {
       
       onLogin(true);
     } else {
+      console.log('🔍 AdminLogin: Invalid credentials');
       setError('Pogrešno korisničko ime ili lozinka');
     }
   };

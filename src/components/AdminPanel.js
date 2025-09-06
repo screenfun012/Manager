@@ -20,12 +20,15 @@ const AdminPanel = ({ currentPeriod }) => {
   };
 
   const handleLogin = (success) => {
+    console.log('🔍 AdminPanel: handleLogin called with success:', success);
     if (success) {
+      console.log('🔍 AdminPanel: Setting isAuthenticated to true');
       setIsAuthenticated(true);
       localStorage.setItem('adminAuth', 'true');
       setMessage('Uspešno ste se ulogovali!');
       setMessageType('success');
     } else {
+      console.log('🔍 AdminPanel: Login failed');
       setMessage('Pogrešni kredencijali!');
       setMessageType('error');
     }

@@ -1024,10 +1024,7 @@ function App() {
 
   // Funkcija za promenu tabova (optimizovana sa useCallback)
   const handleTabChange = useCallback((tabId) => {
-    console.log('🔍 handleTabChange pozvan sa tabId:', tabId);
-    console.log('🔍 Trenutno activeTab:', activeTab);
     setActiveTab(tabId);
-    console.log('🔍 Postavljam activeTab na:', tabId);
   }, [activeTab]);
 
   // Funkcija za export Excel
