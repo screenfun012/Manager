@@ -12,7 +12,7 @@ import FantasticalCalendar from './components/FantasticalCalendar';
 import DetailedExport from './components/DetailedExport';
 
 
-import { Plus, FileSpreadsheet, FileText, UserCheck, AlertTriangle, Search, Upload, FileDown, Database, RefreshCw, Loader2, Trash2 } from 'lucide-react';
+import { Plus, FileSpreadsheet, FileText, UserCheck, AlertTriangle, Search, Upload, FileDown, Database, RefreshCw, Loader2, Trash2, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { materialsAPI, employeesAPI, assignmentsAPI, loadDataWithFallback, fallbackData, getDatabaseInfo } from './services/api';
 import eventBus, { EVENTS } from './services/eventBus';
@@ -157,6 +157,8 @@ function App() {
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true); // Automatsko osvežavanje
   const [lastRefreshTime, setLastRefreshTime] = useState(null); // Vreme poslednjeg osvežavanja
   const [isOffline, setIsOffline] = useState(!navigator.onLine); // Offline status
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Modal za potvrdu brisanja
+  const [materialToDelete, setMaterialToDelete] = useState(null); // Materijal za brisanje
   const [offlineQueueStats, setOfflineQueueStats] = useState({ total: 0, pending: 0, failed: 0 }); // Offline queue statistike
 
 
@@ -804,34 +806,51 @@ function App() {
     }
   };
 
-  // Funkcija za brisanje materijala
-  const handleDeleteMaterial = async (materialId) => {
+  // Funkcija za pokretanje brisanja materijala (otvara modal)
+  const handleDeleteMaterial = (materialId) => {
+    const material = materialsDB.find(m => m.id === materialId);
+    if (material) {
+      setMaterialToDelete(material);
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  // Funkcija za potvrdu brisanja materijala
+  const handleDeleteConfirm = async () => {
+    if (!materialToDelete) return;
+    
     try {
       setIsLoading(true);
       setApiError(null);
       
       // Brisem materijal preko API-ja
-      await materialsAPI.delete(materialId);
+      await materialsAPI.delete(materialToDelete.id);
       
       // Uklanjam iz lokalnog state-a
-      setMaterialsDB(prev => prev.filter(m => m.id !== materialId));
-      setMaterials(prev => prev.filter(m => m.id !== materialId));
+      setMaterialsDB(prev => prev.filter(m => m.id !== materialToDelete.id));
+      setMaterials(prev => prev.filter(m => m.id !== materialToDelete.id));
       
       // Emituj event za admin panel
       eventBus.emit(EVENTS.MATERIAL_DELETED, {
-        materialId: materialId,
+        materialId: materialToDelete.id,
         timestamp: new Date().toISOString()
       });
       
-      alert('Materijal je uspešno obrisan!');
-      
+      console.log('✅ Materijal uspešno obrisan');
     } catch (error) {
       console.error('❌ Greška pri brisanju materijala:', error);
       setApiError(`Greška pri brisanju materijala: ${error.message}`);
-      alert(`Greška pri brisanju materijala: ${error.message}`);
     } finally {
       setIsLoading(false);
+      setShowDeleteConfirm(false);
+      setMaterialToDelete(null);
     }
+  };
+
+  // Funkcija za otkazivanje brisanja
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setMaterialToDelete(null);
   };
 
   // Funkcija za osvežavanje podataka iz API-ja
@@ -1938,6 +1957,130 @@ function App() {
               assignments={assignments}
               onRefresh={refreshData}
             />
+          </div>
+        )}
+
+        {/* Modal za potvrdu brisanja materijala */}
+        {showDeleteConfirm && materialToDelete && (
+          <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '450px' }}>
+              <div className="modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#fef2f2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Trash2 size={20} color="#dc2626" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1.125rem', fontWeight: '600' }}>
+                      Obriši materijal
+                    </h3>
+                    <p style={{ margin: '0.25rem 0 0 0', color: '#6b7280', fontSize: '0.875rem' }}>
+                      Ova akcija se ne može poništiti
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-body">
+                <div style={{ padding: '1rem 0' }}>
+                  <p style={{ margin: '0 0 1rem 0', color: '#374151', lineHeight: '1.5' }}>
+                    Da li ste sigurni da želite da obrišete materijal{' '}
+                    <strong style={{ color: '#1f2937' }}>"{materialToDelete.name}"</strong>?
+                  </p>
+                  
+                  <div style={{
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem',
+                    margin: '1rem 0'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Kategorija:</span>
+                      <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                        {materialToDelete.category}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Trenutno stanje:</span>
+                      <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                        {materialToDelete.stockQuantity || 0} kom
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Minimalno stanje:</span>
+                      <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                        {materialToDelete.minStock || 0} kom
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <AlertTriangle size={16} color="#dc2626" />
+                    <span style={{ color: '#dc2626', fontSize: '0.875rem', fontWeight: '500' }}>
+                      Svi podaci o ovom materijalu će biti trajno obrisani.
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="form-actions">
+                <button 
+                  onClick={handleDeleteCancel}
+                  className="btn btn-secondary"
+                  disabled={isLoading}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  <X size={16} />
+                  Otkaži
+                </button>
+                <button 
+                  onClick={handleDeleteConfirm}
+                  className="btn btn-danger"
+                  disabled={isLoading}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Brisanje...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      Obriši materijal
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
