@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, X, Edit, User, Trash2 } from 'lucide-react';
+import { Save, X, Edit, User, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import EditMaterialForm from './EditMaterialForm';
 
 
@@ -11,6 +11,8 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
   const [editValue, setEditValue] = useState('');
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [materialToDelete, setMaterialToDelete] = useState(null);
 
   const handleCellClick = (materialId, date, currentValue) => {
     setEditingCell({ materialId, date });
@@ -50,10 +52,21 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
   };
 
   const handleDeleteMaterial = (material) => {
-    const confirmed = window.confirm(`Da li ste sigurni da želite da obrišete materijal "${material.name}"?`);
-    if (confirmed && onDeleteMaterial) {
-      onDeleteMaterial(material.id);
+    setMaterialToDelete(material);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (materialToDelete && onDeleteMaterial) {
+      onDeleteMaterial(materialToDelete.id);
     }
+    setShowDeleteConfirm(false);
+    setMaterialToDelete(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setMaterialToDelete(null);
   };
 
   const handleEditCancel = () => {
@@ -286,6 +299,119 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
           onSave={handleEditSave}
           onCancel={handleEditCancel}
         />
+      )}
+
+      {/* Modal za potvrdu brisanja materijala */}
+      {showDeleteConfirm && materialToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fef2f2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Trash2 size={20} color="#dc2626" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1.125rem', fontWeight: '600' }}>
+                    Obriši materijal
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#6b7280', fontSize: '0.875rem' }}>
+                    Ova akcija se ne može poništiti
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-body">
+              <div style={{ padding: '1rem 0' }}>
+                <p style={{ margin: '0 0 1rem 0', color: '#374151', lineHeight: '1.5' }}>
+                  Da li ste sigurni da želite da obrišete materijal{' '}
+                  <strong style={{ color: '#1f2937' }}>"{materialToDelete.name}"</strong>?
+                </p>
+                
+                <div style={{
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  margin: '1rem 0'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Kategorija:</span>
+                    <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {materialToDelete.category}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Ukupno zaduženo:</span>
+                    <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {materialToDelete.total || 0} kom
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Zadužio:</span>
+                    <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {materialToDelete.assignedTo || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <AlertTriangle size={16} color="#dc2626" />
+                  <span style={{ color: '#dc2626', fontSize: '0.875rem', fontWeight: '500' }}>
+                    Svi podaci o ovom zaduženju će biti trajno obrisani.
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="form-actions">
+              <button 
+                onClick={handleDeleteCancel}
+                className="btn btn-secondary"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <X size={16} />
+                Otkaži
+              </button>
+              <button 
+                onClick={handleDeleteConfirm}
+                className="btn btn-danger"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <Trash2 size={16} />
+                Obriši materijal
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
