@@ -660,24 +660,38 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
       <style jsx>{`
         .fantastical-calendar {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          height: 100vh;
-          min-height: 600px;
+          height: 100%;
+          min-height: 500px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
           background: ${colors.background};
           color: ${colors.white};
+          width: 100%;
+          max-width: 100%;
         }
         
         .fantastical-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 1rem 2rem;
+          padding: 0.75rem 1rem;
           border-bottom: 2px solid ${colors.border};
           background: ${colors.surface};
           flex-shrink: 0;
-          min-height: 80px;
+          min-height: 60px;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+          .fantastical-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+            min-height: auto;
+          }
+        }
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
         
@@ -1167,6 +1181,14 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           grid-template-columns: repeat(7, 1fr);
           gap: 1px;
           flex: 1;
+          min-height: 0;
+          overflow: hidden;
+        }
+        
+        @media (max-width: 768px) {
+          .month-grid {
+            gap: 0.5px;
+          }
         }
         
         .month-day {
@@ -1176,6 +1198,10 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           background: ${colors.surface};
           cursor: pointer;
           transition: all 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          overflow: hidden;
         }
         
         @media (max-width: 768px) {
@@ -1239,6 +1265,20 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           font-weight: 600;
           margin-bottom: 0.5rem;
           color: ${colors.white};
+          font-size: 1rem;
+          line-height: 1;
+        }
+        
+        .day-number.today {
+          background: ${colors.primary};
+          color: white;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
         }
         
         .day-events {
@@ -1249,12 +1289,25 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
         
         .month-event {
           padding: 0.25rem 0.5rem;
-          border-radius: 4px;
+          border-radius: 6px;
           font-size: 0.8rem;
           cursor: pointer;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          background: ${colors.primary};
+          color: white;
+          margin: 0.125rem 0;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .month-event:hover {
+          background: ${colors.danger};
+          transform: translateY(-1px);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
         
         .more-events {
@@ -1344,6 +1397,14 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           grid-template-columns: repeat(7, 1fr);
           gap: 1px;
           flex: 1;
+          min-height: 0;
+          overflow: hidden;
+        }
+        
+        @media (max-width: 768px) {
+          .week-grid {
+            gap: 0.5px;
+          }
         }
         
         .week-day {
