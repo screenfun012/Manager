@@ -6,26 +6,9 @@ import AdminDashboard from './AdminDashboard';
 import AdminStats from './AdminStats';
 
 const SimpleAdminPanel = ({ currentPeriod, materials = [], materialsDB = [], employeesDB = [], assignments = [], onRefresh }) => {
-  console.log('🚨🚨🚨 SimpleAdminPanel COMPONENT RENDERED! 🚨🚨🚨');
-  console.log('🔍 SimpleAdminPanel: activeAdminTab:', 'dashboard'); // default je dashboard
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState('dashboard');
   const [message, setMessage] = useState('');
-
-  // Debug log za materialsDB
-  console.log('🔍 SimpleAdminPanel: materialsDB length:', materialsDB.length);
-  console.log('🔍 SimpleAdminPanel: materialsDB items:', materialsDB.map(m => ({ id: m.id, name: m.name, created_at: m.created_at })));
-
-  // Dodatni debug - proveri današnje materijale
-  const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const todayMaterials = materialsDB.filter(m => {
-    const materialDate = new Date(m.created_at);
-    return materialDate >= todayStart;
-  });
-  console.log('🔍 SimpleAdminPanel: Today materials count:', todayMaterials.length);
-  console.log('🔍 SimpleAdminPanel: Today materials:', todayMaterials.map(m => ({ name: m.name, created_at: m.created_at })));
 
   const handleLogin = (success) => {
     if (success) {

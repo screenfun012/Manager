@@ -300,20 +300,6 @@ const AdminDashboard = ({
 
   // Reagovanje na promene u localMaterialsDB
   useEffect(() => {
-    console.log('🔍 AdminDashboard: localMaterialsDB changed, length:', localMaterialsDB.length);
-    console.log('🔍 AdminDashboard: localMaterialsDB items:', localMaterialsDB.map(m => ({ id: m.id, name: m.name, created_at: m.created_at })));
-    console.log('🔍 AdminDashboard: Force re-render triggered!');
-
-    // Dodatni debug - proveri današnje materijale
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const todayMaterials = localMaterialsDB.filter(m => {
-      const materialDate = new Date(m.created_at);
-      return materialDate >= todayStart;
-    });
-    console.log('🔍 AdminDashboard: Today materials count:', todayMaterials.length);
-    console.log('🔍 AdminDashboard: Today materials:', todayMaterials.map(m => ({ name: m.name, created_at: m.created_at })));
-
     // Force re-render by updating a dummy state
     setLastRefresh(new Date());
   }, [localMaterialsDB]);

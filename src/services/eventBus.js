@@ -19,9 +19,7 @@ class EventBus {
 
   // Emituj event
   emit(event, data) {
-    console.log('🔄 EventBus emit:', event, data);
     if (this.events[event]) {
-      console.log(`🔄 EventBus: ${this.events[event].length} subscribers for ${event}`);
       this.events[event].forEach(callback => {
         try {
           callback(data);
@@ -29,8 +27,6 @@ class EventBus {
           console.error(`Error in event callback for ${event}:`, error);
         }
       });
-    } else {
-      console.log(`🔄 EventBus: No subscribers for ${event}`);
     }
   }
 

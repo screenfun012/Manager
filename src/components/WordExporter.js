@@ -58,29 +58,6 @@ const WordExporter = ({
     setExportStatus(null);
     
     try {
-      console.log('🚀 Starting Word export with type:', type, 'department:', department, 'employee:', employee);
-      console.log('📊 Available materials:', materials?.length || 0);
-      console.log('📊 Available materialsDB:', materialsDB?.length || 0);
-      console.log('🔧 Props check:', {
-        materials: !!materials,
-        materialsDB: !!materialsDB,
-        getFilteredDataForExport: typeof getFilteredDataForExport,
-        totalMaterials: totalMaterials,
-        totalCategories: totalCategories,
-        overallTotal: overallTotal
-      });
-
-      // Debug: Prikaži prve 3 materijala da vidimo strukturu
-      if (materialsDB && materialsDB.length > 0) {
-        console.log('🔍 Sample materialsDB data:', materialsDB.slice(0, 3).map(m => ({
-          id: m?.id,
-          name: m?.name,
-          stockQuantity: m?.stockQuantity,
-          hasStockQuantity: typeof m?.stockQuantity !== 'undefined',
-          stockQuantityType: typeof m?.stockQuantity
-        })));
-      }
-
       // Provera da li su sve potrebne funkcije dostupne
       if (type === 'consumption' && (!getDatesForCurrentMonth || !getTotalForDate)) {
         throw new Error('Consumption export requires getDatesForCurrentMonth and getTotalForDate functions');
@@ -89,13 +66,9 @@ const WordExporter = ({
       let title, content, fileName;
       let filteredMaterials = materialsDB || materials || []; // Koristimo materialsDB kao primarni izvor
 
-      console.log('📋 Using materials for export:', filteredMaterials.length);
-
       // Aplikuj filtere ako su postavljeni
       if (department || employee) {
-        console.log('🔍 Applying filters - department:', department, 'employee:', employee);
         filteredMaterials = getFilteredDataForExport ? getFilteredDataForExport(department, employee) : filteredMaterials;
-        console.log('📋 Filtered materials count:', filteredMaterials.length);
       }
 
       // Dodatna provera da li su podaci validni

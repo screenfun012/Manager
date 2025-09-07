@@ -12,23 +12,16 @@ import FantasticalCalendar from './components/FantasticalCalendar';
 import DetailedExport from './components/DetailedExport';
 
 
-import { Plus, FileSpreadsheet, FileText, UserCheck, AlertTriangle, Search, Upload, FileDown, Database, RefreshCw, Loader2, RotateCcw, Trash2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Plus, FileSpreadsheet, FileText, UserCheck, AlertTriangle, Search, Upload, FileDown, Database, RefreshCw, Loader2, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { materialsAPI, employeesAPI, assignmentsAPI, loadDataWithFallback, fallbackData, getDatabaseInfo } from './services/api';
 import eventBus, { EVENTS } from './services/eventBus';
 import { 
-  getDefaultCurrentMonthPeriod, 
-  getDefaultPreviousMonthPeriod, 
-  getDefaultNextMonthPeriod,
-  shouldAutoSwitchToNewMonth,
-  emitMonthChangedEvent,
-  formatDateForAPI,
-  getCurrentMonthName,
   getCurrentBelgradeDate
 } from './services/dateUtils';
 import { saveAsWorkflow, showToast } from './services/fileUtils';
 import offlineQueueService from './services/offlineQueue';
+import storage from './services/storage';
 
 // Sample data arrays - premestam izvan komponente da ne bi se redefinisali pri svakom renderovanju
 const sampleCategories = [
@@ -274,20 +267,33 @@ function App() {
     
     // Uklonjen event listener za promenu meseca
     
-    // Učitavanje podataka iz API-ja sa fallback-om
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        setApiError(null);
-        console.log('🔄 Učitavam podatke iz API-ja...');
-        
-        // Učitavanje materijala iz API-ja
-        const materialsData = await loadDataWithFallback(
-          () => materialsAPI.getAll(),
-          fallbackMaterials
-        );
-        setMaterialsDB(materialsData);
-        console.log('✅ Materijali učitani:', materialsData.length);
+  // Učitavanje podataka iz API-ja sa fallback-om
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      setApiError(null);
+      
+      // Prvo pokušaj da učitam iz storage
+      const savedMaterialsDB = storage.getItem('materialsDB');
+      if (savedMaterialsDB) {
+        try {
+          const parsedMaterialsDB = JSON.parse(savedMaterialsDB);
+          setMaterialsDB(parsedMaterialsDB);
+          console.log('📦 Učitano iz storage:', parsedMaterialsDB.length, 'materijala');
+        } catch (error) {
+          console.error('❌ Greška pri parsiranju storage:', error);
+        }
+      }
+      
+      // Učitavanje materijala iz API-ja
+      const materialsData = await loadDataWithFallback(
+        () => materialsAPI.getAll(),
+        fallbackMaterials
+      );
+      setMaterialsDB(materialsData);
+      
+      // Sačuvaj u localStorage
+      saveMaterialsDBToStorage(materialsData);
         
         // Učitavanje zaposlenih iz API-ja
         const employeesData = await loadDataWithFallback(
@@ -295,7 +301,6 @@ function App() {
           fallbackEmployees
         );
         setEmployeesDB(employeesData);
-        console.log('✅ Zaposleni učitani:', employeesData.length);
         
         // Učitavanje zaduženja iz API-ja
         const assignmentsData = await loadDataWithFallback(
@@ -303,12 +308,10 @@ function App() {
           []
         );
         setAssignments(assignmentsData);
-        console.log('✅ Zaduženja učitana:', assignmentsData.length);
         
         // Generisanje materijala za dashboard na osnovu zaduženja
         const processedMaterials = processAssignmentsToMaterials(assignmentsData, materialsData, employeesData);
         setMaterials(processedMaterials);
-        console.log('✅ Materijali za dashboard generisani:', processedMaterials.length);
         
       } catch (error) {
         console.error('❌ Greška pri učitavanju podataka:', error);
@@ -333,14 +336,12 @@ function App() {
     let autoRefreshInterval;
     
     if (autoRefreshEnabled) {
-      console.log('🔄 Uključujem automatsko osvežavanje podataka...');
       autoRefreshInterval = setInterval(autoRefreshData, 5 * 60 * 1000); // 5 minuta
     }
     
     // Cleanup interval-a kada se komponenta unmount-uje ili se promeni autoRefreshEnabled
     return () => {
       if (autoRefreshInterval) {
-        console.log('⏸️ Isključujem automatsko osvežavanje podataka...');
         clearInterval(autoRefreshInterval);
       }
     };
@@ -351,26 +352,16 @@ function App() {
     const registerServiceWorker = async () => {
       if ('serviceWorker' in navigator) {
         try {
-          console.log('🔄 Registrujem Service Worker...');
-          
           const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('✅ Service Worker registrovan:', registration);
-          
-          // Proveri da li je Service Worker aktivan
-          if (registration.active) {
-            console.log('✅ Service Worker aktivan');
-          }
           
           // Event listeneri za Service Worker
           registration.addEventListener('updatefound', () => {
-            console.log('🔄 Service Worker update pronađen');
+            // Service Worker update pronađen
           });
           
         } catch (error) {
           console.error('❌ Greška pri registraciji Service Worker-a:', error);
         }
-      } else {
-        console.log('⚠️ Service Worker nije podržan u ovom browser-u');
       }
     };
     
@@ -380,12 +371,10 @@ function App() {
   // useEffect za offline status i queue monitoring
   useEffect(() => {
     const handleOnline = () => {
-      console.log('🌐 Online - konekcija vraćena');
       setIsOffline(false);
     };
 
     const handleOffline = () => {
-      console.log('📡 Offline - konekcija izgubljena');
       setIsOffline(true);
     };
 
@@ -414,7 +403,6 @@ function App() {
   // useEffect za slušanje ažuriranja zaposlenih iz Admin Panel-a
   useEffect(() => {
     const handleEmployeeUpdated = (data) => {
-      console.log('🔄 Employee updated event received:', data);
       // Ažuriraj employeesDB sa novim podacima
       if (data.employee) {
         setEmployeesDB(prev => {
@@ -443,7 +431,6 @@ function App() {
 
   const handleExcelUpload = (data) => {
     // Process uploaded Excel data
-    console.log('Excel data uploaded:', data);
     // Here you would process the Excel data and update the state
   };
 
@@ -504,7 +491,6 @@ function App() {
   };
 
   const handleAddMaterial = async (newMaterial) => {
-    console.log('🔍 Dodavanje materijala:', newMaterial);
 
     try {
       setIsLoading(true);
@@ -523,7 +509,6 @@ function App() {
           stockQuantity: (existingMaterial?.stockQuantity || 0) + newMaterial.stockQuantity
         };
         
-        console.log(`🔍 Povećavam stanje za "${existingMaterial?.name}" sa ${existingMaterial?.stockQuantity || 0} na ${updatedMaterial.stockQuantity}`);
         
         // Ažuriram preko API-ja
         await materialsAPI.update(existingMaterial.id, updatedMaterial);
@@ -533,8 +518,8 @@ function App() {
           const updated = prev.map(m => 
             m.id === existingMaterial.id ? updatedMaterial : m
           );
-          console.log('🔍 AdminDashboard: materialsDB updated in handleAddMaterial (existing), new length:', updated.length);
-          console.log('🔍 AdminDashboard: Updated material:', updatedMaterial);
+          // Sačuvaj u localStorage
+          saveMaterialsDBToStorage(updated);
           return updated;
         });
         
@@ -553,7 +538,6 @@ function App() {
           minStock: newMaterial.minStock || Math.max(1, Math.floor(newMaterial.stockQuantity * 0.2)) // 20% od početne količine kao minimalno
         };
         
-        console.log(`🔍 Dodajem novi materijal "${newMaterial.name}" u magacin sa stanjem ${newMaterial.stockQuantity}`);
         
         // Dodajem preko API-ja
         const createdMaterial = await materialsAPI.create(newMaterialForDB);
@@ -561,21 +545,16 @@ function App() {
         // Ažuriram lokalni state
         setMaterialsDB(prev => {
           const updated = [...prev, createdMaterial];
-          console.log('🔍 App.js: materialsDB updated in handleAddMaterial, new length:', updated.length);
-          console.log('🔍 App.js: New material added:', createdMaterial);
-          console.log('🔍 App.js: All materialsDB items:', updated.map(m => ({ id: m.id, name: m.name, created_at: m.created_at })));
+          // Sačuvaj u localStorage
+          saveMaterialsDBToStorage(updated);
           return updated;
         });
         
         // Emituj event za admin panel
-        console.log('🚨🚨🚨 App.js: EMITTING MATERIAL_CREATED EVENT! 🚨🚨🚨');
-        console.log('🔍 App.js: Event data:', createdMaterial);
-        console.log('🔍 App.js: Event timestamp:', new Date().toISOString());
         eventBus.emit(EVENTS.MATERIAL_CREATED, {
           material: createdMaterial,
           timestamp: new Date().toISOString()
         });
-        console.log('🚨🚨🚨 App.js: MATERIAL_CREATED EVENT EMITTED! 🚨🚨🚨');
       }
 
     // Sada dodajemo/ažuriramo materijal u listu za praćenje potrošnje
@@ -601,7 +580,6 @@ function App() {
             };
             const newTotal = Object.values(updatedQuantities).reduce((sum, qty) => sum + qty, 0);
 
-            console.log(`🔍 Dodajem ${newMaterial.stockQuantity} komada na postojeći materijal "${material.name}" za datum ${currentDate}`);
             return {
               ...material,
               quantities: updatedQuantities,
@@ -629,7 +607,6 @@ function App() {
         });
 
         updatedMaterials = [...prev, material];
-        console.log(`🔍 Kreiram novi unos za materijal "${newMaterial.name}" sa ${newMaterial.stockQuantity} komada`);
       }
 
       // Čuvam ažurirane materijale u localStorage
@@ -638,7 +615,6 @@ function App() {
     });
 
     setShowAddForm(false);
-    console.log('✓ Materijal uspešno dodat/ažuriran!');
     
     } catch (error) {
       console.error('❌ Greška pri dodavanju materijala:', error);
@@ -651,20 +627,12 @@ function App() {
 
   // Funkcija za zaduženje materijala
   const handleMaterialAssignment = async (assignment) => {
-    console.log('🔍 ====== POČETAK handleMaterialAssignment ======');
-    console.log('🔍 Assignment objekat:', assignment);
-    
     if (!assignment) {
-      console.log('🔍 ERROR: Assignment je undefined!');
       return;
     }
     
     const { materialId, quantity, date, material, employee } = assignment;
     
-    console.log('🔍 handleMaterialAssignment pozvan sa:', { materialId, quantity, date, material, employee });
-    console.log('🔍 Trenutno materials state PRE:', materials);
-    console.log('🔍 Date format:', date);
-    console.log('🔍 Trenutni datum:', new Date().getDate().toString().padStart(2, '0') + '.' + (new Date().getMonth() + 1).toString().padStart(2, '0') + '.');
     
     try {
       setIsLoading(true);
@@ -674,7 +642,6 @@ function App() {
       const materialToUpdate = materialsDB.find(m => m.id === materialId);
       if (materialToUpdate) {
         const newStockQuantity = Math.max(0, (materialToUpdate?.stockQuantity || 0) - quantity);
-        console.log(`🔍 Smanjujem stanje za "${materialToUpdate?.name}" sa ${materialToUpdate?.stockQuantity || 0} na ${newStockQuantity}`);
         
         const updatedMaterial = {
           ...materialToUpdate,
@@ -689,7 +656,8 @@ function App() {
           const updated = prev.map(m => 
             m.id === materialId ? updatedMaterial : m
           );
-          console.log('🔍 AdminDashboard: materialsDB updated in handleMaterialAssignment, new length:', updated.length);
+          // Sačuvaj u localStorage
+          saveMaterialsDBToStorage(updated);
           return updated;
         });
       }
@@ -703,15 +671,10 @@ function App() {
       };
       
       await assignmentsAPI.create(assignmentData);
-      console.log('✅ Zaduženje kreirano u bazi:', assignmentData);
 
     // Dodajem zaduženje u materijale
     setMaterials(prev => {
-      console.log('🔍 setMaterials prev:', prev);
-      
       const existingMaterial = prev.find(m => m.id === materialId);
-      console.log('🔍 existingMaterial:', existingMaterial);
-      console.log('🔍 Tražim ID:', materialId, 'Tip:', typeof materialId);
       
       let updatedMaterials;
       
@@ -724,8 +687,6 @@ function App() {
         
         const newTotal = Object.values(updatedQuantities).reduce((sum, qty) => sum + qty, 0);
         
-        console.log('🔍 Ažuriram postojeći materijal:', { updatedQuantities, newTotal });
-        console.log('🔍 Novi quantities za datum', date, ':', updatedQuantities[date]);
         
         updatedMaterials = prev.map(m => {
           if (m.id === materialId) {
@@ -740,9 +701,6 @@ function App() {
           return m;
         });
         
-        console.log('🔍 Updated materials:', updatedMaterials);
-        console.log('🔍 Updated materials length:', updatedMaterials.length);
-        console.log('🔍 Updated materials prvi:', updatedMaterials[0]);
       } else {
         // Kreiram novi materijal u sistemu
         const newMaterial = {
@@ -756,7 +714,6 @@ function App() {
           total: quantity
         };
         
-        console.log('🔍 Kreiram novi materijal:', newMaterial);
         
         updatedMaterials = [...prev, newMaterial];
       }
@@ -770,7 +727,6 @@ function App() {
     // Prikazujem potvrdu
     alert(`Uspešno zadužen materijal: ${material.name} - ${quantity} ${material.unit} za ${employee.name}`);
     
-    console.log('🔍 Nakon zaduženja, materials state će biti ažuriran');
     
     // Emituj event za trenutno ažuriranje Admin Panel-a
     eventBus.emit(EVENTS.ASSIGNMENT_CREATED, {
@@ -800,8 +756,6 @@ function App() {
     // Automatski prebacujem na početnu tab da korisnik vidi ažuriranje
     setActiveTab('dashboard');
     
-    // Dodajem console.log da vidim da li se state stvarno ažurira
-    console.log('🔍 Trenutno materials state NAKON zaduženja:', materials);
     
     // Osvežavam sve podatke da se ažuriraju i zaduženja
     await refreshData();
@@ -882,20 +836,50 @@ function App() {
 
   // Funkcija za osvežavanje podataka iz API-ja
   const refreshData = async () => {
-    console.log('🔍 refreshData called - ažuriram sve podatke iz admin dashboard-a');
-    console.log('🔍 refreshData: Current materialsDB length before refresh:', materialsDB.length);
     try {
       setIsLoading(true);
       setApiError(null);
-      console.log('🔄 Osvežavam podatke iz API-ja...');
       
       // Učitavam materijale iz API-ja
       const materialsData = await loadDataWithFallback(
         () => materialsAPI.getAll(),
         fallbackMaterials
       );
-      setMaterialsDB(materialsData);
-      console.log('✅ Materijali osveženi:', materialsData.length);
+      
+      // Ažuriram materialsDB zadržavajući postojeće podatke
+      setMaterialsDB(prevMaterialsDB => {
+        // Kreiraj mapu postojećih materijala po ID-u
+        const existingMaterialsMap = new Map();
+        prevMaterialsDB.forEach(material => {
+          existingMaterialsMap.set(material.id, material);
+        });
+        
+        // Ažuriraj postojeće materijale i dodaj nove
+        const updatedMaterials = materialsData.map(apiMaterial => {
+          const existingMaterial = existingMaterialsMap.get(apiMaterial.id);
+          if (existingMaterial) {
+            // Zadrži postojeći created_at ako je API material stariji
+            const existingCreatedAt = new Date(existingMaterial.created_at);
+            const apiCreatedAt = new Date(apiMaterial.created_at);
+            
+            return {
+              ...apiMaterial,
+              created_at: existingCreatedAt > apiCreatedAt ? existingMaterial.created_at : apiMaterial.created_at
+            };
+          } else {
+            // Novi materijal - koristi API created_at
+            return apiMaterial;
+          }
+        });
+        
+        return updatedMaterials;
+      });
+      
+      // Sačuvaj u localStorage
+      setMaterialsDB(prevMaterialsDB => {
+        saveMaterialsDBToStorage(prevMaterialsDB);
+        return prevMaterialsDB;
+      });
       
       // Učitavam zaposlene iz API-ja
       const employeesData = await loadDataWithFallback(
@@ -903,7 +887,6 @@ function App() {
         fallbackEmployees
       );
       setEmployeesDB(employeesData);
-      console.log('✅ Zaposleni osveženi:', employeesData.length);
       
       // Učitavam zaduženja iz API-ja
       const assignmentsData = await loadDataWithFallback(
@@ -911,12 +894,10 @@ function App() {
         []
       );
       setAssignments(assignmentsData);
-      console.log('✅ Zaduženja osvežena:', assignmentsData.length);
       
       // Generisanje materijala za dashboard na osnovu zaduženja
       const processedMaterials = processAssignmentsToMaterials(assignmentsData, materialsData, employeesData);
       setMaterials(processedMaterials);
-      console.log('✅ Materijali za dashboard osveženi:', processedMaterials.length);
       
       // Ažuriram dashboard statistike
       try {
@@ -968,6 +949,9 @@ function App() {
         fallbackMaterials
       );
       setMaterialsDB(materialsData);
+      
+      // Sačuvaj u localStorage
+      saveMaterialsDBToStorage(materialsData);
       
       // Učitavam zaposlene iz API-ja (bez loading state-a)
       const employeesData = await loadDataWithFallback(
@@ -1234,7 +1218,7 @@ function App() {
         });
         
         // Čuvam ažurirano stanje magacina u localStorage
-        saveMaterialsDBToLocalStorage(updatedMaterialsDB);
+        saveMaterialsDBToStorage(updatedMaterialsDB);
         
         return updatedMaterialsDB;
       });
@@ -1253,13 +1237,13 @@ function App() {
     }
   };
 
-  // Funkcija za čuvanje stanja magacina u localStorage
-  const saveMaterialsDBToLocalStorage = (materialsDBToSave) => {
+  // Funkcija za čuvanje stanja magacina u storage
+  const saveMaterialsDBToStorage = (materialsDBToSave) => {
     try {
-      localStorage.setItem('materialsDB', JSON.stringify(materialsDBToSave));
-      console.log('🔍 Stanje magacina sačuvano u localStorage:', materialsDBToSave);
+      storage.setItem('materialsDB', JSON.stringify(materialsDBToSave));
+      console.log('🔍 Stanje magacina sačuvano u storage:', materialsDBToSave);
     } catch (error) {
-      console.error('🔍 Greška pri čuvanju stanja magacina u localStorage:', error);
+      console.error('🔍 Greška pri čuvanju stanja magacina u storage:', error);
     }
   };
 

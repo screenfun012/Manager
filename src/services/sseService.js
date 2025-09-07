@@ -12,24 +12,19 @@ class SSEService {
     if (this.eventSource) {
       this.disconnect();
     }
-
-    console.log('📡 Connecting to SSE...');
     
     this.eventSource = new EventSource('http://localhost:5001/api/events');
     
     this.eventSource.onopen = () => {
-      console.log('📡 SSE connection opened');
       this.reconnectAttempts = 0;
     };
 
     this.eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('📡 SSE message received:', data);
         
         // Emit event to event bus
         if (data.type && data.type !== 'connected') {
-          console.log('📡 Emitting event to eventBus:', data.type, data.data);
           eventBus.emit(data.type, data.data);
         }
       } catch (error) {
@@ -38,12 +33,12 @@ class SSEService {
     };
 
     this.eventSource.onerror = (error) => {
-      console.error('📡 SSE connection error:', error);
+      console.error('SSE connection error:', error);
       this.handleReconnect();
     };
 
     this.eventSource.addEventListener('error', (error) => {
-      console.error('📡 SSE event error:', error);
+      console.error('SSE event error:', error);
     });
   }
 
