@@ -505,33 +505,6 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
             <CalendarIcon size={24} />
             Fantastical Calendar
           </h1>
-          
-          <div className="view-controls">
-            <button 
-              className={`view-btn ${viewMode === 'day' ? 'active' : ''}`}
-              onClick={() => setViewMode('day')}
-            >
-              Day
-            </button>
-            <button 
-              className={`view-btn ${viewMode === 'week' ? 'active' : ''}`}
-              onClick={() => setViewMode('week')}
-            >
-              Week
-            </button>
-            <button 
-              className={`view-btn ${viewMode === 'month' ? 'active' : ''}`}
-              onClick={() => setViewMode('month')}
-            >
-              Month
-            </button>
-            <button 
-              className={`view-btn ${viewMode === 'year' ? 'active' : ''}`}
-              onClick={() => setViewMode('year')}
-            >
-              Year
-            </button>
-          </div>
         </div>
         
         <div className="header-center">
@@ -563,29 +536,58 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
         </div>
         
         <div className="header-right">
-          <button onClick={goToToday} className="today-btn">
-            Today
-          </button>
-          
-          <div className="search-container">
-            <Search size={16} />
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
+          <div className="view-controls">
+            <button 
+              className={`view-btn ${viewMode === 'day' ? 'active' : ''}`}
+              onClick={() => setViewMode('day')}
+            >
+              Day
+            </button>
+            <button 
+              className={`view-btn ${viewMode === 'week' ? 'active' : ''}`}
+              onClick={() => setViewMode('week')}
+            >
+              Week
+            </button>
+            <button 
+              className={`view-btn ${viewMode === 'month' ? 'active' : ''}`}
+              onClick={() => setViewMode('month')}
+            >
+              Month
+            </button>
+            <button 
+              className={`view-btn ${viewMode === 'year' ? 'active' : ''}`}
+              onClick={() => setViewMode('year')}
+            >
+              Year
+            </button>
           </div>
           
-          <button onClick={handleAddEvent} className="add-btn">
-            <Plus size={16} />
-            Add Event
-          </button>
-          
-          <button onClick={() => setShowSettings(!showSettings)} className="settings-btn">
-            <Settings size={16} />
-          </button>
+          <div className="action-controls">
+            <button onClick={goToToday} className="today-btn">
+              Today
+            </button>
+            
+            <div className="search-container">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+            
+            <button onClick={handleAddEvent} className="add-btn">
+              <Plus size={16} />
+              Add Event
+            </button>
+            
+            <button onClick={() => setShowSettings(!showSettings)} className="settings-btn">
+              <Settings size={16} />
+            </button>
+          </div>
         </div>
       </div>
       
@@ -726,7 +728,7 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
         .header-left {
           display: flex;
           align-items: center;
-          gap: 2rem;
+          flex-shrink: 0;
         }
         
         .calendar-title {
@@ -798,6 +800,7 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           flex: 1;
           display: flex;
           justify-content: center;
+          min-width: 0;
         }
         
         .navigation {
@@ -856,6 +859,13 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           display: flex;
           align-items: center;
           gap: 1rem;
+          flex-shrink: 0;
+        }
+        
+        .action-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
         }
         
         .today-btn {
@@ -880,6 +890,8 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           position: relative;
           display: flex;
           align-items: center;
+          min-width: 200px;
+          max-width: 300px;
         }
         
         .search-container svg {
@@ -894,7 +906,8 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           border-radius: 8px;
           background: ${colors.surface};
           color: ${colors.white};
-          width: 200px;
+          width: 100%;
+          min-width: 0;
           font-weight: 500;
         }
         
@@ -912,6 +925,18 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
           
           .header-right {
             gap: 0.5rem;
+            flex-direction: column;
+            align-items: stretch;
+          }
+          
+          .action-controls {
+            gap: 0.5rem;
+            flex-wrap: wrap;
+          }
+          
+          .search-container {
+            min-width: 150px;
+            max-width: 200px;
           }
           
           .today-btn, .add-btn {
