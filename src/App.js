@@ -1978,10 +1978,10 @@ function App() {
                     <Trash2 size={20} color="#dc2626" />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1.125rem', fontWeight: '600' }}>
+                    <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.125rem', fontWeight: '600' }}>
                       Obriši materijal
                     </h3>
-                    <p style={{ margin: '0.25rem 0 0 0', color: '#6b7280', fontSize: '0.875rem' }}>
+                    <p style={{ margin: '0.25rem 0 0 0', color: '#9ca3af', fontSize: '0.875rem' }}>
                       Ova akcija se ne može poništiti
                     </p>
                   </div>
@@ -1990,49 +1990,49 @@ function App() {
               
               <div className="modal-body">
                 <div style={{ padding: '1rem 0' }}>
-                  <p style={{ margin: '0 0 1rem 0', color: '#374151', lineHeight: '1.5' }}>
+                  <p style={{ margin: '0 0 1rem 0', color: '#d1d5db', lineHeight: '1.5' }}>
                     Da li ste sigurni da želite da obrišete materijal{' '}
-                    <strong style={{ color: '#1f2937' }}>"{materialToDelete.name}"</strong>?
+                    <strong style={{ color: '#ffffff' }}>"{materialToDelete.name}"</strong>?
                   </p>
                   
                   <div style={{
-                    backgroundColor: '#f9fafb',
-                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#374151',
+                    border: '1px solid #4b5563',
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
                     margin: '1rem 0'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Kategorija:</span>
-                      <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Kategorija:</span>
+                      <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
                         {materialToDelete.category}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Trenutno stanje:</span>
-                      <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Trenutno stanje:</span>
+                      <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
                         {materialToDelete.stockQuantity || 0} kom
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Minimalno stanje:</span>
-                      <span style={{ color: '#1f2937', fontSize: '0.875rem', fontWeight: '500' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Minimalno stanje:</span>
+                      <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
                         {materialToDelete.minStock || 0} kom
                       </span>
                     </div>
                   </div>
                   
                   <div style={{
-                    backgroundColor: '#fef2f2',
-                    border: '1px solid #fecaca',
+                    backgroundColor: '#7f1d1d',
+                    border: '1px solid #dc2626',
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem'
                   }}>
-                    <AlertTriangle size={16} color="#dc2626" />
-                    <span style={{ color: '#dc2626', fontSize: '0.875rem', fontWeight: '500' }}>
+                    <AlertTriangle size={16} color="#fca5a5" />
+                    <span style={{ color: '#fca5a5', fontSize: '0.875rem', fontWeight: '500' }}>
                       Svi podaci o ovom materijalu će biti trajno obrisani.
                     </span>
                   </div>
