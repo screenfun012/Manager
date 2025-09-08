@@ -560,62 +560,8 @@ function App() {
         });
       }
 
-    // Sada dodajemo/ažuriramo materijal u listu za praćenje potrošnje
-    setMaterials(prev => {
-      // Proveravamo da li već postoji isti materijal (po nazivu, kategoriji, odeljenju i zaduženom)
-      const existingMaterialIndex = prev.findIndex(material =>
-        material.name.toLowerCase() === newMaterial.name.toLowerCase() &&
-        material.category === newMaterial.category &&
-        material.department === newMaterial.department &&
-        material.assignedTo === newMaterial.assignedTo
-      );
-
-      let updatedMaterials;
-
-      if (existingMaterialIndex !== -1) {
-        // Materijal već postoji - dodajemo količinu na postojeći datum
-        updatedMaterials = prev.map((material, index) => {
-          if (index === existingMaterialIndex) {
-            const currentDate = new Date().toLocaleDateString('sr-RS').split('.').slice(0, 2).join('.');
-            const updatedQuantities = {
-              ...material.quantities,
-              [currentDate]: (material.quantities[currentDate] || 0) + newMaterial.stockQuantity
-            };
-            const newTotal = Object.values(updatedQuantities).reduce((sum, qty) => sum + qty, 0);
-
-            return {
-              ...material,
-              quantities: updatedQuantities,
-              total: newTotal,
-              assignmentDate: currentDate
-            };
-          }
-          return material;
-        });
-      } else {
-        // Novi materijal - kreiramo novi unos
-        const currentDate = new Date().toLocaleDateString('sr-RS').split('.').slice(0, 2).join('.');
-        const material = {
-          ...newMaterial,
-          id: Date.now(),
-          quantities: {},
-          total: newMaterial.stockQuantity,
-          assignmentDate: currentDate
-        };
-
-        // Initialize quantities for all dates
-        const dates = generateDatesForMonth(selectedMonth, selectedYear);
-        dates.forEach(date => {
-          material.quantities[date] = date === currentDate ? newMaterial.stockQuantity : 0;
-        });
-
-        updatedMaterials = [...prev, material];
-      }
-
-      // Čuvam ažurirane materijale u localStorage
-      saveMaterialsToLocalStorage(updatedMaterials);
-      return updatedMaterials;
-    });
+    // Materijal se dodaje samo u magacin (materialsDB)
+    // Dashboard (materials) se popunjava tek kada se materijal zaduži preko handleMaterialAssignment
 
     setShowAddForm(false);
     
