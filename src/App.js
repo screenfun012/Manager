@@ -536,6 +536,7 @@ function App() {
         const newMaterialForDB = {
           category: newMaterial.category,
           name: newMaterial.name,
+          description: newMaterial.description || '',
           stockQuantity: newMaterial.stockQuantity,
           unit: newMaterial.unit,
           minStock: newMaterial.minStock || Math.max(1, Math.floor(newMaterial.stockQuantity * 0.2)) // 20% od početne količine kao minimalno
