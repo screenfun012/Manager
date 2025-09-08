@@ -159,6 +159,7 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
           <tr>
             <th style={{ width: '120px' }}>Kategorija</th>
             <th style={{ width: '180px' }}>Naziv Materijala</th>
+            <th style={{ width: '200px' }}>Opis</th>
             <th style={{ width: '120px' }}>Radnik</th>
             <th style={{ width: '80px' }}>Akcije</th>
             {dates.map(date => (
@@ -174,7 +175,7 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
               <tr className="employee-header" style={{
                 background: employeeIndex % 2 === 0 ? '#2d3748' : '#374151'
               }}>
-                <td colSpan={dates.length + 5} style={{
+                <td colSpan={dates.length + 6} style={{
                   padding: '1rem',
                   fontSize: '1.1rem',
                   fontWeight: '700',
@@ -196,6 +197,14 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
                   </td>
                   <td style={{ fontWeight: '500' }}>
                     {material.name}
+                  </td>
+                  <td style={{ 
+                    maxWidth: '200px',
+                    wordWrap: 'break-word',
+                    fontSize: '0.9rem',
+                    color: '#d1d5db'
+                  }}>
+                    {material.description || '-'}
                   </td>
                   <td style={{
                     color: '#60a5fa',
@@ -239,7 +248,7 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
                 background: employeeIndex % 2 === 0 ? '#1a202c' : '#2d3748',
                 borderTop: '1px solid #4b5563'
               }}>
-                <td colSpan={4} style={{
+                <td colSpan={5} style={{
                   padding: '0.75rem 2rem',
                   fontWeight: '600',
                   color: '#fbbf24'
@@ -262,7 +271,7 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
 
           {/* Overall Total Row */}
           <tr className="overall-total-row">
-            <td colSpan={dates.length + 5} style={{
+            <td colSpan={dates.length + 6} style={{
               padding: '1rem',
               fontSize: '1.2rem',
               fontWeight: '700',
@@ -274,7 +283,7 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
             </td>
           </tr>
           <tr className="overall-total-row">
-            <td colSpan={4} style={{
+            <td colSpan={5} style={{
               fontWeight: '700',
               color: '#ffffff'
             }}>

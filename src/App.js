@@ -77,6 +77,7 @@ const processAssignmentsToMaterials = (assignments, materialsDB, employeesDB) =>
           id: material.id,
           category: material.category,
           name: material.name,
+          description: material.description,
           department: employee.department,
           assignedTo: employee.name,
           quantities: {},
@@ -1583,6 +1584,7 @@ function App() {
                   <tr>
                     <th>Kategorija</th>
                     <th>Naziv Materijala</th>
+                    <th>Opis</th>
                     <th>Stanje</th>
                     <th>Jedinica</th>
                     <th>Minimalno Stanje</th>
@@ -1600,6 +1602,14 @@ function App() {
                     }}>
                       <td>{material.category}</td>
                       <td>{material.name}</td>
+                      <td style={{ 
+                        maxWidth: '200px',
+                        wordWrap: 'break-word',
+                        fontSize: '0.9rem',
+                        color: '#d1d5db'
+                      }}>
+                        {material.description || '-'}
+                      </td>
                       <td style={{ 
                         fontWeight: '600',
                         color: (material?.stockQuantity || 0) <= (material?.minStock || 0) ? '#fca5a5' : '#86efac'
@@ -2008,6 +2018,14 @@ function App() {
                         {materialToDelete.category}
                       </span>
                     </div>
+                    {materialToDelete.description && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Opis:</span>
+                        <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500', maxWidth: '200px', textAlign: 'right' }}>
+                          {materialToDelete.description}
+                        </span>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Trenutno stanje:</span>
                       <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
