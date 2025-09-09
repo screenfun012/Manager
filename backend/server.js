@@ -428,6 +428,63 @@ app.post('/api/assignments', (req, res) => {
   });
 });
 
+// DELETE assignment by ID
+app.delete('/api/assignments/:id', (req, res) => {
+  const { id } = req.params;
+  
+  const query = 'DELETE FROM assignments WHERE id = ?';
+  
+  db.run(query, [id], function(err) {
+    if (err) {
+      console.error('Greška pri brisanju zaduženja:', err);
+      return res.status(500).json({ error: 'Greška pri brisanju zaduženja' });
+    }
+    
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Zaduženje nije pronađeno' });
+    }
+    
+    // Emituj event za admin panel
+    console.log('🔄 Zaduženje obrisano, emitujem evente...');
+    broadcastEvent('ASSIGNMENT_DELETED', { id: parseInt(id) });
+    broadcastEvent('DATA_SYNC_NEEDED', { type: 'assignment_deleted', data: { id: parseInt(id) } });
+    
+    res.json({ 
+      message: 'Zaduženje uspešno obrisano',
+      id: parseInt(id),
+      event: 'ASSIGNMENT_DELETED'
+    });
+  });
+});
+
+// DELETE all assignments for a material
+app.delete('/api/assignments/material/:materialId', (req, res) => {
+  const { materialId } = req.params;
+  
+  const query = 'DELETE FROM assignments WHERE material_id = ?';
+  
+  db.run(query, [materialId], function(err) {
+    if (err) {
+      console.error('Greška pri brisanju zaduženja za materijal:', err);
+      return res.status(500).json({ error: 'Greška pri brisanju zaduženja za materijal' });
+    }
+    
+    const deletedCount = this.changes;
+    
+    // Emituj event za admin panel
+    console.log(`🔄 ${deletedCount} zaduženja obrisano za materijal ${materialId}, emitujem evente...`);
+    broadcastEvent('ASSIGNMENTS_DELETED_BY_MATERIAL', { materialId: parseInt(materialId), count: deletedCount });
+    broadcastEvent('DATA_SYNC_NEEDED', { type: 'assignments_deleted_by_material', data: { materialId: parseInt(materialId), count: deletedCount } });
+    
+    res.json({ 
+      message: `${deletedCount} zaduženja uspešno obrisano za materijal`,
+      materialId: parseInt(materialId),
+      deletedCount,
+      event: 'ASSIGNMENTS_DELETED_BY_MATERIAL'
+    });
+  });
+});
+
 // API Routes - Statistike
 app.get('/api/stats/overview', (req, res) => {
   const queries = {

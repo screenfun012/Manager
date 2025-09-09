@@ -764,6 +764,15 @@ function App() {
     }
   };
 
+  // Funkcija za vraćanje materijala u magacin (dashboard)
+  const handleReturnMaterialToInventory = (materialId) => {
+    const material = materials.find(m => m.id === materialId);
+    if (material) {
+      setMaterialToDelete(material);
+      setShowDeleteConfirm(true);
+    }
+  };
+
   // Funkcija za potvrdu brisanja materijala
   const handleDeleteConfirm = async () => {
     if (!materialToDelete) return;
@@ -772,23 +781,42 @@ function App() {
       setIsLoading(true);
       setApiError(null);
       
-      // Brisem materijal preko API-ja
-      await materialsAPI.delete(materialToDelete.id);
+      // Proveravam da li je materijal iz magacina ili dashboard-a
+      const isFromInventory = materialsDB.some(m => m.id === materialToDelete.id);
       
-      // Uklanjam iz lokalnog state-a
-      setMaterialsDB(prev => prev.filter(m => m.id !== materialToDelete.id));
-      setMaterials(prev => prev.filter(m => m.id !== materialToDelete.id));
-      
-      // Emituj event za admin panel
-      eventBus.emit(EVENTS.MATERIAL_DELETED, {
-        materialId: materialToDelete.id,
-        timestamp: new Date().toISOString()
-      });
-      
-      console.log('✅ Materijal uspešno obrisan');
+      if (isFromInventory) {
+        // Brisanje iz magacina - briše materijal iz baze
+        await materialsAPI.delete(materialToDelete.id);
+        
+        // Uklanjam iz lokalnog state-a
+        setMaterialsDB(prev => prev.filter(m => m.id !== materialToDelete.id));
+        setMaterials(prev => prev.filter(m => m.id !== materialToDelete.id));
+        
+        // Emituj event za admin panel
+        eventBus.emit(EVENTS.MATERIAL_DELETED, {
+          materialId: materialToDelete.id,
+          timestamp: new Date().toISOString()
+        });
+        
+        console.log('✅ Materijal uspešno obrisan iz magacina');
+      } else {
+        // Vraćanje u magacin - samo uklanja assignment
+        await assignmentsAPI.deleteByMaterialId(materialToDelete.id);
+        
+        // Uklanjam samo iz dashboard-a (materials), ne iz magacina (materialsDB)
+        setMaterials(prev => prev.filter(m => m.id !== materialToDelete.id));
+        
+        // Emituj event za admin panel
+        eventBus.emit(EVENTS.ASSIGNMENT_RETURNED, {
+          materialId: materialToDelete.id,
+          timestamp: new Date().toISOString()
+        });
+        
+        console.log('✅ Materijal uspešno vraćen u magacin');
+      }
     } catch (error) {
-      console.error('❌ Greška pri brisanju materijala:', error);
-      setApiError(`Greška pri brisanju materijala: ${error.message}`);
+      console.error('❌ Greška pri brisanju/vraćanju materijala:', error);
+      setApiError(`Greška pri brisanju/vraćanju materijala: ${error.message}`);
     } finally {
       setIsLoading(false);
       setShowDeleteConfirm(false);
@@ -1491,7 +1519,7 @@ function App() {
                   getTotalForCategory={getTotalForCategory}
                   getTotalForDate={getTotalForDate}
                   onEditMaterial={handleEditMaterial}
-                  onDeleteMaterial={handleDeleteMaterial}
+                  onDeleteMaterial={handleReturnMaterialToInventory}
                 />
               </div>
             </div>
@@ -1937,10 +1965,10 @@ function App() {
                   </div>
                   <div>
                     <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.125rem', fontWeight: '600' }}>
-                      Obriši materijal
+                      {materialsDB.some(m => m.id === materialToDelete?.id) ? 'Obriši materijal' : 'Vrati materijal u magacin'}
                     </h3>
                     <p style={{ margin: '0.25rem 0 0 0', color: '#9ca3af', fontSize: '0.875rem' }}>
-                      Ova akcija se ne može poništiti
+                      {materialsDB.some(m => m.id === materialToDelete?.id) ? 'Ova akcija se ne može poništiti' : 'Materijal će biti vraćen u magacin'}
                     </p>
                   </div>
                 </div>
@@ -1949,8 +1977,10 @@ function App() {
               <div className="modal-body">
                 <div style={{ padding: '1rem 0' }}>
                   <p style={{ margin: '0 0 1rem 0', color: '#d1d5db', lineHeight: '1.5' }}>
-                    Da li ste sigurni da želite da obrišete materijal{' '}
-                    <strong style={{ color: '#ffffff' }}>"{materialToDelete.name}"</strong>?
+                    {materialsDB.some(m => m.id === materialToDelete?.id) 
+                      ? `Da li ste sigurni da želite da obrišete materijal "${materialToDelete.name}" iz magacina?`
+                      : `Da li ste sigurni da želite da vratite materijal "${materialToDelete.name}" u magacin?`
+                    }
                   </p>
                   
                   <div style={{
@@ -1999,7 +2029,10 @@ function App() {
                   }}>
                     <AlertTriangle size={16} color="#fca5a5" />
                     <span style={{ color: '#fca5a5', fontSize: '0.875rem', fontWeight: '500' }}>
-                      Svi podaci o ovom materijalu će biti trajno obrisani.
+                      {materialsDB.some(m => m.id === materialToDelete?.id) 
+                        ? 'Svi podaci o ovom materijalu će biti trajno obrisani.'
+                        : 'Materijal će biti vraćen u magacin i moći ćete ga ponovo zadužiti.'
+                      }
                     </span>
                   </div>
                 </div>
@@ -2036,12 +2069,12 @@ function App() {
                   {isLoading ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      Brisanje...
+                      {materialsDB.some(m => m.id === materialToDelete?.id) ? 'Brisanje...' : 'Vraćanje...'}
                     </>
                   ) : (
                     <>
                       <Trash2 size={16} />
-                      Obriši materijal
+                      {materialsDB.some(m => m.id === materialToDelete?.id) ? 'Obriši materijal' : 'Vrati u magacin'}
                     </>
                   )}
                 </button>

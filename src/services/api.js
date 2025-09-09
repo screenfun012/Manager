@@ -145,6 +145,13 @@ export const assignmentsAPI = {
       method: 'DELETE',
     });
   },
+
+  // Obriši sva zaduženja za materijal
+  deleteByMaterialId: async (materialId) => {
+    return await apiCall(`/assignments/material/${materialId}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // API za statistike
