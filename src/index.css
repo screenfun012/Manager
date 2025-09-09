@@ -22,6 +22,357 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Improved Materials Overview Styles */
+.materials-overview-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.materials-overview-header {
+  position: sticky;
+  top: 0;
+  background: #111827;
+  border-bottom: 2px solid #dc2626;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.materials-overview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.materials-overview-search {
+  position: relative;
+  min-width: 250px;
+  flex: 1;
+}
+
+.materials-overview-search input {
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  background: #1f2937;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.materials-overview-search input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.materials-overview-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.materials-overview-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.materials-overview-filters select {
+  padding: 0.75rem;
+  background: #1f2937;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.materials-overview-view-toggle {
+  display: flex;
+  background: #1f2937;
+  border-radius: 8px;
+  border: 1px solid #4b5563;
+  overflow: hidden;
+}
+
+.materials-overview-view-toggle button {
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: #9ca3af;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.materials-overview-view-toggle button.active {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.materials-overview-stats {
+  display: flex;
+  gap: 2rem;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.materials-overview-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.materials-cards-grid {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.materials-employee-card {
+  background: #1f2937;
+  border-radius: 12px;
+  border: 1px solid #374151;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.materials-employee-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.materials-employee-header {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  padding: 1rem 1.5rem;
+  color: #ffffff;
+}
+
+.materials-employee-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.materials-employee-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.materials-employee-department {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.materials-employee-content {
+  padding: 1rem;
+}
+
+.materials-item-card {
+  background: #374151;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #4b5563;
+  transition: background-color 0.2s ease;
+}
+
+.materials-item-card:hover {
+  background: #4b5563;
+}
+
+.materials-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.materials-item-info {
+  flex: 1;
+}
+
+.materials-item-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.materials-item-name {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.materials-item-category {
+  background: #1e40af;
+  color: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.materials-item-description {
+  margin: 0;
+  color: #d1d5db;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.materials-item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.materials-quantities-section {
+  margin-bottom: 0.75rem;
+}
+
+.materials-quantities-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.materials-quantities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 0.5rem;
+}
+
+.materials-quantity-item {
+  text-align: center;
+}
+
+.materials-quantity-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.materials-quantity-value {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+  background: #065f46;
+  color: #ffffff;
+  min-width: 40px;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.materials-quantity-value:hover {
+  background: #047857;
+}
+
+.materials-quantity-value.empty {
+  background: #374151;
+  color: #9ca3af;
+}
+
+.materials-item-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #1f2937;
+  border-radius: 6px;
+  border: 1px solid #4b5563;
+}
+
+.materials-total-label {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.materials-total-value {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #10b981;
+  background: #065f46;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .materials-overview-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .materials-overview-search {
+    min-width: auto;
+  }
+  
+  .materials-overview-filters {
+    justify-content: space-between;
+  }
+  
+  .materials-overview-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .materials-cards-grid {
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+  
+  .materials-quantities-grid {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.25rem;
+  }
+  
+  .materials-item-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .materials-item-actions {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .materials-overview-header {
+    padding: 0.75rem;
+  }
+  
+  .materials-employee-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .materials-employee-content {
+    padding: 0.75rem;
+  }
+  
+  .materials-item-card {
+    padding: 0.75rem;
+  }
+  
+  .materials-quantities-grid {
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  }
+}
+
 /* Month Navigation stilovi */
 .month-navigation {
   display: flex;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Header from './components/Header';
 import StatsOverview from './components/StatsOverview';
 import MaterialsTable from './components/MaterialsTable';
+import ImprovedMaterialsOverview from './components/ImprovedMaterialsOverview';
 import ExcelUploader from './components/ExcelUploader';
 import AddMaterialForm from './components/AddMaterialForm';
 import MaterialAssignmentForm from './components/MaterialAssignmentForm';
@@ -1483,7 +1484,7 @@ function App() {
               )}
 
               <div className="materials-table">
-                <MaterialsTable
+                <ImprovedMaterialsOverview
                   materials={getFilteredMaterials}
                   dates={getDatesForCurrentMonth()}
                   onQuantityChange={handleQuantityChange}
