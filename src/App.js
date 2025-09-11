@@ -1232,17 +1232,21 @@ function App() {
       return updatedMaterials;
     });
     
-    // Ažuriram stanje u magacinu
+    // Ažuriram stanje u magacinu - na osnovu apsolutne vrednosti zaduženja
     if (quantityDifference !== 0) {
       setMaterialsDB(prev => {
         const updatedMaterialsDB = prev.map(material => {
           if (material.id === materialId) {
-            const newStockQuantity = (material?.stockQuantity || 0) - quantityDifference;
+            // Vraćam staru količinu u magacin i oduzimam novu
+            const oldStockQuantity = (material?.stockQuantity || 0) + oldQuantity; // Vraćam staru
+            const newStockQuantity = oldStockQuantity - newQuantity; // Oduzimam novu
             console.log('🔍 Ažuriram magacin:', { 
               name: material.name, 
               oldStock: material?.stockQuantity || 0, 
+              oldQuantity: oldQuantity,
+              newQuantity: newQuantity,
               newStock: newStockQuantity,
-              difference: quantityDifference
+              explanation: `Vraćam ${oldQuantity} u magacin, oduzimam ${newQuantity}`
             });
             return {
               ...material,
