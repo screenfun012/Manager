@@ -1255,6 +1255,18 @@ function App() {
         // Čuvam ažurirano stanje magacina u localStorage
         saveMaterialsDBToStorage(updatedMaterialsDB);
         
+        // Ažuriram i u bazi podataka
+        const materialToUpdate = updatedMaterialsDB.find(m => m.id === materialId);
+        if (materialToUpdate) {
+          materialsAPI.updateQuantity(materialId, materialToUpdate.stockQuantity)
+            .then(() => {
+              console.log('✅ Magacin ažuriran u bazi:', materialToUpdate.name, materialToUpdate.stockQuantity);
+            })
+            .catch(error => {
+              console.error('❌ Greška pri ažuriranju magacina u bazi:', error);
+            });
+        }
+        
         return updatedMaterialsDB;
       });
     }

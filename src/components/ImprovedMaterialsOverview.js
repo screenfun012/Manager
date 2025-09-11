@@ -22,6 +22,20 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   const [newQuantity, setNewQuantity] = useState('');
   const [editedQuantities, setEditedQuantities] = useState(new Set());
 
+  // Učitaj editovane količine iz localStorage
+  React.useEffect(() => {
+    try {
+      const savedEdited = localStorage.getItem('editedQuantities');
+      if (savedEdited) {
+        const parsedEdited = JSON.parse(savedEdited);
+        setEditedQuantities(new Set(parsedEdited));
+        console.log('🔍 Učitane editovane količine:', parsedEdited);
+      }
+    } catch (error) {
+      console.error('🔍 Greška pri učitavanju editovanih količina:', error);
+    }
+  }, []);
+
   // Grupišemo materijale po radniku
   const groupedByEmployee = materials.reduce((acc, material) => {
     const employeeKey = material.employeeId; // Koristimo samo employeeId
@@ -196,7 +210,16 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
         
         // Označi kao editovanu
         const editKey = `${editingQuantity.material.id}_${editingQuantity.date}`;
-        setEditedQuantities(prev => new Set([...prev, editKey]));
+        const newEditedQuantities = new Set([...editedQuantities, editKey]);
+        setEditedQuantities(newEditedQuantities);
+        
+        // Sačuvaj u localStorage
+        try {
+          localStorage.setItem('editedQuantities', JSON.stringify([...newEditedQuantities]));
+          console.log('🔍 Sačuvane editovane količine:', [...newEditedQuantities]);
+        } catch (error) {
+          console.error('🔍 Greška pri čuvanju editovanih količina:', error);
+        }
         
         // Zatvori modal
         setShowEditQuantityModal(false);
