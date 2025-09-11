@@ -11,6 +11,17 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   // Modal state je uklonjen - koristi se samo modal iz App.js
   // viewMode uklonjen - koristi se samo kartice
 
+  // Tooltip i modal za detalje zaduženja
+  const [tooltipData, setTooltipData] = useState(null);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  
+  // Modal za editovanje količine
+  const [showEditQuantityModal, setShowEditQuantityModal] = useState(false);
+  const [editingQuantity, setEditingQuantity] = useState(null);
+  const [newQuantity, setNewQuantity] = useState('');
+  const [editedQuantities, setEditedQuantities] = useState(new Set());
+
   // Grupišemo materijale po radniku
   const groupedByEmployee = materials.reduce((acc, material) => {
     const employeeKey = material.employeeId; // Koristimo samo employeeId
@@ -123,6 +134,87 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   const handleEditCancel = () => {
     setShowEditForm(false);
     setEditingMaterial(null);
+  };
+
+  // Tooltip i modal funkcije za detalje zaduženja
+  const handleCellHover = (material, date, currentValue, event) => {
+    if (currentValue > 0) {
+      const rect = event.target.getBoundingClientRect();
+      setTooltipData({
+        material,
+        date,
+        quantity: currentValue,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
+    } else {
+      setTooltipData(null);
+    }
+  };
+
+  const handleCellLeave = () => {
+    setTooltipData(null);
+  };
+
+  const handleCellClickForDetails = async (materialId, date, currentValue) => {
+    if (currentValue > 0) {
+      // Tražimo materijal u grupi po employeeId
+      const material = materials.find(m => m.id === materialId);
+      if (material) {
+        setSelectedAssignment({
+          material,
+          date,
+          quantity: currentValue
+        });
+        setShowAssignmentModal(true);
+      }
+    }
+  };
+
+  const closeAssignmentModal = () => {
+    setShowAssignmentModal(false);
+    setSelectedAssignment(null);
+  };
+
+  // Funkcije za editovanje količine
+  const handleEditQuantity = (material, date, currentValue) => {
+    setEditingQuantity({
+      material,
+      date,
+      currentValue
+    });
+    setNewQuantity(currentValue.toString());
+    setShowEditQuantityModal(true);
+  };
+
+  const handleSaveQuantity = () => {
+    if (editingQuantity && newQuantity !== '') {
+      const newQty = parseInt(newQuantity);
+      if (newQty >= 0) {
+        // Pozovi onQuantityChange da ažurira količinu
+        onQuantityChange(editingQuantity.material.id, editingQuantity.date, newQty);
+        
+        // Označi kao editovanu
+        const editKey = `${editingQuantity.material.id}_${editingQuantity.date}`;
+        setEditedQuantities(prev => new Set([...prev, editKey]));
+        
+        // Zatvori modal
+        setShowEditQuantityModal(false);
+        setEditingQuantity(null);
+        setNewQuantity('');
+      }
+    }
+  };
+
+  const handleCancelEditQuantity = () => {
+    setShowEditQuantityModal(false);
+    setEditingQuantity(null);
+    setNewQuantity('');
+  };
+
+  const isQuantityEdited = (materialId, date) => {
+    const editKey = `${materialId}_${date}`;
+    return editedQuantities.has(editKey);
   };
 
   const renderCell = (material, date) => {
@@ -249,21 +341,46 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
                   <div className="materials-quantities-grid">
                     {dates.map(date => {
                       const currentValue = material.quantities[date] || 0;
+                      const isEdited = isQuantityEdited(material.id, date);
+                      const hasValue = currentValue > 0;
+                      
+                      // Određujemo boju na osnovu stanja
+                      let backgroundColor = 'transparent';
+                      let textColor = '#9ca3af';
+                      let borderColor = '#4b5563';
+                      
+                      if (hasValue) {
+                        if (isEdited) {
+                          // Narandžasto-žuta za editovane
+                          backgroundColor = '#f59e0b';
+                          textColor = '#ffffff';
+                          borderColor = '#d97706';
+                        } else {
+                          // Zelena za originalne
+                          backgroundColor = '#10b981';
+                          textColor = '#ffffff';
+                          borderColor = '#059669';
+                        }
+                      }
+                      
                       return (
-                        <div 
-                          key={date} 
+                        <div
+                          key={date}
                           className="materials-quantity-item"
                           style={{
-                            backgroundColor: currentValue > 0 ? '#10b981' : 'transparent',
-                            color: currentValue > 0 ? '#ffffff' : '#9ca3af',
-                            border: currentValue > 0 ? '1px solid #059669' : '1px solid #4b5563',
+                            backgroundColor,
+                            color: textColor,
+                            border: `1px solid ${borderColor}`,
                             borderRadius: '6px',
                             padding: '0.5rem',
                             textAlign: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
+                            cursor: hasValue ? 'pointer' : 'default',
+                            transition: 'all 0.2s ease',
+                            position: 'relative'
                           }}
-                          onClick={() => handleCellClick(material.id, date, currentValue)}
+                          onMouseEnter={(e) => handleCellHover(material, date, currentValue, e)}
+                          onMouseLeave={handleCellLeave}
+                          onClick={() => hasValue && handleEditQuantity(material, date, currentValue)}
                         >
                           {date}
                         </div>
@@ -456,6 +573,263 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
               onSave={handleEditSave}
               onCancel={handleEditCancel}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Tooltip za detalje zaduženja */}
+      {tooltipData && (
+        <div
+          className="assignment-tooltip"
+          style={{
+            position: 'fixed',
+            left: tooltipData.x,
+            top: tooltipData.y,
+            transform: 'translateX(-50%)',
+            background: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '8px',
+            padding: '0.75rem',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            minWidth: '200px',
+            pointerEvents: 'none'
+          }}
+        >
+          <div style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+            📅 {tooltipData.date}
+          </div>
+          <div style={{ color: '#10b981', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+            📦 {tooltipData.material.name}
+          </div>
+          <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>
+            👤 {tooltipData.material.assignedTo}
+          </div>
+          <div style={{ color: '#60a5fa', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            🔢 Količina: {tooltipData.quantity}
+            {isQuantityEdited(tooltipData.material.id, tooltipData.date) && (
+              <span style={{ color: '#f59e0b', marginLeft: '0.5rem' }}>
+                ✏️ (editovano)
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal za detalje zaduženja */}
+      {showAssignmentModal && selectedAssignment && (
+        <div
+          className="assignment-modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+          onClick={closeAssignmentModal}
+        >
+          <div
+            className="assignment-modal"
+            style={{
+              background: '#1f2937',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              maxWidth: '400px',
+              width: '90%',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.7)',
+              border: '1px solid #374151'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: '700' }}>
+                📋 Detalji zaduženja
+              </h3>
+              <button
+                onClick={closeAssignmentModal}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  fontSize: '1.5rem',
+                  padding: '0.25rem'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ color: '#60a5fa', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                📅 Datum: <strong>{selectedAssignment.date}</strong>
+              </div>
+              <div style={{ color: '#10b981', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                📦 Materijal: <strong>{selectedAssignment.material.name}</strong>
+              </div>
+              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                👤 Zaposleni: <strong>{selectedAssignment.material.assignedTo}</strong>
+              </div>
+              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                🏢 Odeljenje: <strong>{selectedAssignment.material.department}</strong>
+              </div>
+              <div style={{ color: '#f59e0b', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                🔢 Količina: <strong>{selectedAssignment.quantity}</strong>
+              </div>
+              <div style={{ color: '#6b7280', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
+                📝 Kategorija: {selectedAssignment.material.category}
+              </div>
+              {selectedAssignment.material.description && (
+                <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                  💬 Opis: {selectedAssignment.material.description}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                onClick={closeAssignmentModal}
+                style={{
+                  background: '#374151',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Zatvori
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal za editovanje količine */}
+      {showEditQuantityModal && editingQuantity && (
+        <div
+          className="edit-quantity-modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+          onClick={handleCancelEditQuantity}
+        >
+          <div
+            className="edit-quantity-modal"
+            style={{
+              background: '#1f2937',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              maxWidth: '400px',
+              width: '90%',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.7)',
+              border: '1px solid #374151'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: '700' }}>
+                ✏️ Izmeni količinu
+              </h3>
+              <button
+                onClick={handleCancelEditQuantity}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  fontSize: '1.5rem',
+                  padding: '0.25rem'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ color: '#60a5fa', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                📅 Datum: <strong>{editingQuantity.date}</strong>
+              </div>
+              <div style={{ color: '#10b981', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                📦 Materijal: <strong>{editingQuantity.material.name}</strong>
+              </div>
+              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                👤 Zaposleni: <strong>{editingQuantity.material.assignedTo}</strong>
+              </div>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ color: '#d1d5db', fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
+                  Trenutna količina: <strong style={{ color: '#f59e0b' }}>{editingQuantity.currentValue}</strong>
+                </label>
+                <input
+                  type="number"
+                  value={newQuantity}
+                  onChange={(e) => setNewQuantity(e.target.value)}
+                  placeholder="Unesite novu količinu"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    border: '1px solid #4b5563',
+                    background: '#374151',
+                    color: '#ffffff',
+                    fontSize: '1rem'
+                  }}
+                  autoFocus
+                />
+                <div style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  💡 Unesite 0 da uklonite zaduženje ili veću vrednost da povećate
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                onClick={handleCancelEditQuantity}
+                style={{
+                  background: '#374151',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Otkaži
+              </button>
+              <button
+                onClick={handleSaveQuantity}
+                style={{
+                  background: '#10b981',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '600'
+                }}
+              >
+                Sačuvaj
+              </button>
+            </div>
           </div>
         </div>
       )}
