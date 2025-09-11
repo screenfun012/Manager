@@ -39,55 +39,65 @@ const Header = ({ onLogoClick, activeTab, onTabChange, lowStockCount = 0, curren
 
       {/* Navigacija celom dužinom */}
       <div className="header-bottom">
-        <div className="header-center-content">
+        <div className="header-center-content" style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          width: '100%',
+          padding: '0 2rem'
+        }}>
+          {/* Ikonice levo */}
           <nav className="header-tabs">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 className={`header-tab ${activeTab === tab.id ? 'active' : ''}`}
                 onClick={() => onTabChange(tab.id)}
+                title={tab.label}
               >
                 {tab.icon}
-                {tab.label}
               </button>
             ))}
           </nav>
 
-          {/* Navigacija kroz mesece */}
-          <div className="month-navigation">
-            <button
-              onClick={() => onMonthChange && onMonthChange('previous')}
-              className="month-nav-btn"
-              title="Prethodni mesec"
-            >
-              <ChevronLeft size={16} />
-            </button>
+          {/* Mesec/godina i indikatori desno */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Navigacija kroz mesece */}
+            <div className="month-navigation">
+              <button
+                onClick={() => onMonthChange && onMonthChange('previous')}
+                className="month-nav-btn"
+                title="Prethodni mesec"
+              >
+                <ChevronLeft size={16} />
+              </button>
 
-            <div className="current-month-display">
-              <div className="current-month">
-                {monthNames[currentMonth]}
+              <div className="current-month-display">
+                <div className="current-month">
+                  {monthNames[currentMonth]}
+                </div>
+                <div className="current-year">
+                  {currentYear}
+                </div>
               </div>
-              <div className="current-year">
-                {currentYear}
-              </div>
+
+              <button
+                onClick={() => onMonthChange && onMonthChange('next')}
+                className="month-nav-btn"
+                title="Sledeći mesec"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
 
-            <button
-              onClick={() => onMonthChange && onMonthChange('next')}
-              className="month-nav-btn"
-              title="Sledeći mesec"
-            >
-              <ChevronRight size={16} />
-            </button>
+            {/* Indikator za nisko stanje */}
+            {lowStockCount > 0 && (
+              <div className="low-stock-indicator" title={`${lowStockCount} materijala ima nisko stanje`}>
+                <Package size={16} />
+                <span className="low-stock-count">{lowStockCount}</span>
+              </div>
+            )}
           </div>
-
-          {/* Indikator za nisko stanje */}
-          {lowStockCount > 0 && (
-            <div className="low-stock-indicator" title={`${lowStockCount} materijala ima nisko stanje`}>
-              <Package size={16} />
-              <span className="low-stock-count">{lowStockCount}</span>
-            </div>
-          )}
         </div>
       </div>
     </header>

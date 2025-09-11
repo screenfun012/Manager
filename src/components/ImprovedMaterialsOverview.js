@@ -1,27 +1,25 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, User, Package, Calendar, Edit, Trash2, Save, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { User, Package, Calendar, Edit, Trash2, Save, X, AlertTriangle, Loader2 } from 'lucide-react';
 import EditMaterialForm from './EditMaterialForm';
 
-const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTotalForCategory, getTotalForDate, onEditMaterial, onDeleteMaterial }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTotalForCategory, getTotalForDate, onEditMaterial, onDeleteMaterial, searchTerm = '' }) => {
   const [selectedDate, setSelectedDate] = useState('all');
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [materialToDelete, setMaterialToDelete] = useState(null);
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
+  // Modal state je uklonjen - koristi se samo modal iz App.js
+  // viewMode uklonjen - koristi se samo kartice
 
   // Grupišemo materijale po radniku
   const groupedByEmployee = materials.reduce((acc, material) => {
-    const employeeKey = `${material.assignedTo}_${material.department}`;
+    const employeeKey = material.employeeId; // Koristimo samo employeeId
 
     if (!acc[employeeKey]) {
       acc[employeeKey] = {
         assignedTo: material.assignedTo,
         department: material.department,
+        employeeId: material.employeeId,
         materials: {}
       };
     }
@@ -50,35 +48,33 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   const filteredEmployees = useMemo(() => {
     let filtered = Object.values(groupedByEmployee);
 
-    // Search filter
+    // Search filter - pretražuje radnike i materijale
     if (searchTerm) {
-      filtered = filtered.filter(employee => 
+      filtered = filtered.map(employee => {
+        // Filtriramo materijale unutar svakog radnika
+        const filteredMaterials = Object.fromEntries(
+          Object.entries(employee.materials).filter(([_, material]) => 
+            material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            material.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            material.description.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        );
+
+        return {
+          ...employee,
+          materials: filteredMaterials
+        };
+      }).filter(employee => 
+        // Zadržavamo radnika ako se pretraga poklapa sa radnikom ili ako ima materijale koji se poklapaju
         employee.assignedTo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employee.department.toLowerCase().includes(searchTerm.toLowerCase())
+        employee.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        Object.keys(employee.materials).length > 0
       );
     }
 
-    // Category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.map(employee => ({
-        ...employee,
-        materials: Object.fromEntries(
-          Object.entries(employee.materials).filter(([_, material]) => 
-            material.category === selectedCategory
-          )
-        )
-      })).filter(employee => Object.keys(employee.materials).length > 0);
-    }
-
     return filtered;
-  }, [groupedByEmployee, searchTerm, selectedCategory]);
+  }, [groupedByEmployee, searchTerm]);
 
-  // Dobijamo sve kategorije za filter
-  const categories = useMemo(() => {
-    const cats = new Set();
-    materials.forEach(material => cats.add(material.category));
-    return Array.from(cats).sort();
-  }, [materials]);
 
   const handleCellClick = (materialId, date, currentValue) => {
     setEditingCell({ materialId, date });
@@ -118,21 +114,10 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   };
 
   const handleDeleteMaterial = (material) => {
-    setMaterialToDelete(material);
-    setShowDeleteConfirm(true);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (materialToDelete && onDeleteMaterial) {
-      onDeleteMaterial(materialToDelete.id);
+    // Direktno pozivam onDeleteMaterial - modal se prikazuje u App.js
+    if (onDeleteMaterial) {
+      onDeleteMaterial(material.id);
     }
-    setShowDeleteConfirm(false);
-    setMaterialToDelete(null);
-  };
-
-  const handleDeleteCancel = () => {
-    setShowDeleteConfirm(false);
-    setMaterialToDelete(null);
   };
 
   const handleEditCancel = () => {
@@ -181,10 +166,15 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
     
     return (
       <div 
-        className={`materials-quantity-value ${currentValue === 0 ? 'empty' : ''}`}
+        className={`materials-quantity-value ${currentValue === 0 ? 'empty' : 'filled'}`}
         onClick={() => handleCellClick(material.id, date, currentValue)}
+        style={{
+          backgroundColor: currentValue > 0 ? '#10b981' : 'transparent',
+          color: currentValue > 0 ? '#ffffff' : '#9ca3af',
+          border: currentValue > 0 ? '1px solid #059669' : '1px solid #4b5563'
+        }}
       >
-        {currentValue || '-'}
+        {currentValue > 0 ? currentValue : ''}
       </div>
     );
   };
@@ -257,14 +247,28 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
                     </span>
                   </div>
                   <div className="materials-quantities-grid">
-                    {dates.map(date => (
-                      <div key={date} className="materials-quantity-item">
-                        <div className="materials-quantity-date">
+                    {dates.map(date => {
+                      const currentValue = material.quantities[date] || 0;
+                      return (
+                        <div 
+                          key={date} 
+                          className="materials-quantity-item"
+                          style={{
+                            backgroundColor: currentValue > 0 ? '#10b981' : 'transparent',
+                            color: currentValue > 0 ? '#ffffff' : '#9ca3af',
+                            border: currentValue > 0 ? '1px solid #059669' : '1px solid #4b5563',
+                            borderRadius: '6px',
+                            padding: '0.5rem',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onClick={() => handleCellClick(material.id, date, currentValue)}
+                        >
                           {date}
                         </div>
-                        {renderCell(material, date)}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -409,59 +413,19 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
       {/* Sticky Header */}
       <div className="materials-overview-header">
         <div className="materials-overview-controls">
-          {/* Search */}
-          <div className="materials-overview-search">
-            <Search size={18} className="materials-overview-search-icon" />
-            <input
-              type="text"
-              placeholder="Pretraži radnike..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* Category Filter */}
-          <div className="materials-overview-filters">
-            <Filter size={16} color="#9ca3af" />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="all">Sve kategorije</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* View Mode Toggle */}
-          <div className="materials-overview-view-toggle">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={viewMode === 'cards' ? 'active' : ''}
-            >
-              Kartice
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={viewMode === 'table' ? 'active' : ''}
-            >
-              Tabela
-            </button>
-          </div>
+          {/* Search uklonjen - koristi se search iz App.js */}
         </div>
 
         {/* Stats */}
         <div className="materials-overview-stats">
           <span>Radnici: <strong style={{ color: '#ffffff' }}>{filteredEmployees.length}</strong></span>
           <span>Materijali: <strong style={{ color: '#ffffff' }}>{materials.length}</strong></span>
-          <span>Kategorije: <strong style={{ color: '#ffffff' }}>{categories.length}</strong></span>
         </div>
       </div>
 
       {/* Content */}
       <div className="materials-overview-content">
-        {viewMode === 'cards' ? renderCardView() : renderTableView()}
+        {renderCardView()}
       </div>
 
       {/* Edit Modal */}
@@ -496,95 +460,7 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && materialToDelete && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: '#1f2937',
-            borderRadius: '12px',
-            padding: '2rem',
-            maxWidth: '500px',
-            width: '90%',
-            border: '1px solid #dc2626'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-              <AlertTriangle size={32} color="#dc2626" />
-              <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.25rem' }}>
-                Obriši materijal
-              </h3>
-            </div>
-            
-            <p style={{ color: '#d1d5db', marginBottom: '1.5rem', lineHeight: '1.6' }}>
-              Ova akcija se ne može poništiti. Da li ste sigurni da želite da obrišete materijal?
-            </p>
-
-            <div style={{ 
-              background: '#374151', 
-              padding: '1rem', 
-              borderRadius: '8px', 
-              marginBottom: '1.5rem',
-              border: '1px solid #4b5563'
-            }}>
-              <div style={{ marginBottom: '0.5rem' }}>
-                <strong style={{ color: '#ffffff' }}>Naziv:</strong> {materialToDelete.name}
-              </div>
-              <div style={{ marginBottom: '0.5rem' }}>
-                <strong style={{ color: '#ffffff' }}>Kategorija:</strong> {materialToDelete.category}
-              </div>
-              <div style={{ marginBottom: '0.5rem' }}>
-                <strong style={{ color: '#ffffff' }}>Radnik:</strong> {materialToDelete.assignedTo}
-              </div>
-              <div>
-                <strong style={{ color: '#ffffff' }}>Ukupno:</strong> {materialToDelete.total} kom
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={handleDeleteCancel}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  background: '#6b7280',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}
-              >
-                Otkaži
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  background: '#dc2626',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}
-              >
-                Obriši
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal je uklonjen - koristi se samo modal iz App.js */}
     </div>
   );
 };

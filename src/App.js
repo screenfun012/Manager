@@ -71,26 +71,33 @@ const processAssignmentsToMaterials = (assignments, materialsDB, employeesDB) =>
     const employee = employeesDB.find(e => e.id === assignment.employee_id);
     
     if (material && employee) {
-      const key = `${material.id}-${employee.department}`;
+      const key = `${material.id}-${employee.id}`;
       
       if (!materialMap.has(key)) {
         materialMap.set(key, {
-          id: material.id,
+          id: `${material.id}_${employee.id}`, // Jedinstveni ID za svaki zaposleni-materijal par
+          materialId: material.id, // Originalni material ID za brisanje iz baze
           category: material.category,
           name: material.name,
           description: material.description,
           department: employee.department,
           assignedTo: employee.name,
+          employeeId: employee.id, // Dodajemo employeeId
           quantities: {},
-          total: 0
+          total: 0,
+          employeeInfo: { // Dodajemo employee info za brisanje
+            employeeId: employee.id,
+            assignedTo: employee.name,
+            department: employee.department
+          }
         });
       }
       
       const materialData = materialMap.get(key);
-      const dateKey = new Date(assignment.created_at).toLocaleDateString('sr-RS', { 
-        day: '2-digit', 
-        month: '2-digit' 
-      });
+      const assignmentDate = new Date(assignment.created_at);
+      const day = assignmentDate.getDate();
+      const month = assignmentDate.getMonth() + 1;
+      const dateKey = `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.`;
       
       if (!materialData.quantities[dateKey]) {
         materialData.quantities[dateKey] = 0;
@@ -757,7 +764,14 @@ function App() {
 
   // Funkcija za pokretanje brisanja materijala (otvara modal)
   const handleDeleteMaterial = (materialId) => {
-    const material = materialsDB.find(m => m.id === materialId);
+    // Prvo pokušaj da nađeš u materialsDB (inventory)
+    let material = materialsDB.find(m => m.id === materialId);
+    
+    // Ako nije u materialsDB, pokušaj u materials (dashboard)
+    if (!material) {
+      material = materials.find(m => m.id === materialId);
+    }
+    
     if (material) {
       setMaterialToDelete(material);
       setShowDeleteConfirm(true);
@@ -800,15 +814,40 @@ function App() {
         
         console.log('✅ Materijal uspešno obrisan iz magacina');
       } else {
-        // Vraćanje u magacin - samo uklanja assignment
-        await assignmentsAPI.deleteByMaterialId(materialToDelete.id);
+        // Vraćanje u magacin - briše zaduženje za određenog radnika
+        if (materialToDelete.employeeInfo) {
+          // Koristimo employeeInfo ako postoji
+          await assignmentsAPI.deleteByMaterialAndEmployee(materialToDelete.materialId, materialToDelete.employeeInfo.assignedTo);
+        } else {
+          // Fallback na staru logiku
+          await assignmentsAPI.deleteByMaterialId(materialToDelete.materialId || materialToDelete.id);
+        }
         
-        // Uklanjam samo iz dashboard-a (materials), ne iz magacina (materialsDB)
+        // Vraćam količinu u magacin
+        const materialInInventory = materialsDB.find(m => m.id === materialToDelete.materialId);
+        if (materialInInventory) {
+          const returnedQuantity = materialToDelete.total || 0;
+          const newQuantity = materialInInventory.stockQuantity + returnedQuantity;
+          
+          // Ažuriram količinu u bazi
+          await materialsAPI.updateQuantity(materialToDelete.materialId, newQuantity);
+          
+          // Ažuriram lokalni state
+          setMaterialsDB(prev => prev.map(m => 
+            m.id === materialToDelete.materialId 
+              ? { ...m, stockQuantity: newQuantity }
+              : m
+          ));
+          
+          console.log(`✅ Vraćeno ${returnedQuantity} komada u magacin. Nova količina: ${newQuantity}`);
+        }
+        
+        // Uklanjam samo tu karticu iz lokalnog state-a
         setMaterials(prev => prev.filter(m => m.id !== materialToDelete.id));
         
         // Emituj event za admin panel
         eventBus.emit(EVENTS.ASSIGNMENT_RETURNED, {
-          materialId: materialToDelete.id,
+          materialId: materialToDelete.materialId || materialToDelete.id,
           timestamp: new Date().toISOString()
         });
         
@@ -1347,7 +1386,7 @@ function App() {
                     }} />
                     <input
                       type="text"
-                      placeholder="Pretraži materijale..."
+                      placeholder="Pretraži radnike i materijale..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       style={{
@@ -1365,100 +1404,6 @@ function App() {
                     />
                   </div>
 
-                  {/* Refresh dugme */}
-                  <button
-                    onClick={refreshData}
-                    disabled={isLoading}
-                    className={`refresh-button ${isLoading ? 'loading' : ''}`}
-                    title="Osveži podatke iz baze"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="refresh-icon" size={20} />
-                    ) : (
-                      <RefreshCw className="refresh-icon" size={20} />
-                    )}
-                    <span className="loading-text">
-                      {isLoading ? 'Osvežavam...' : 'Osveži'}
-                    </span>
-                  </button>
-
-                  {/* Auto-refresh toggle */}
-                  <button
-                    onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                    style={{
-                      background: autoRefreshEnabled ? '#dc2626' : '#059669',
-                      border: `2px solid ${autoRefreshEnabled ? '#991b1b' : '#047857'}`,
-                      color: '#ffffff',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontSize: '0.8rem',
-                      fontWeight: '600'
-                    }}
-                    title={autoRefreshEnabled ? 'Isključi automatsko osvežavanje' : 'Uključi automatsko osvežavanje'}
-                  >
-                    {autoRefreshEnabled ? '🔄 ON' : '⏸️ OFF'}
-                  </button>
-
-                  {/* Status automatskog osvežavanja */}
-                  {lastRefreshTime && (
-                    <div style={{
-                      background: '#374151',
-                      border: '1px solid #4b5563',
-                      color: '#9ca3af',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}>
-                      <span>🕐</span>
-                      <span>Poslednje: {lastRefreshTime.toLocaleTimeString('sr-RS')}</span>
-                    </div>
-                  )}
-
-                  {/* Offline status indikator */}
-                  {isOffline && (
-                    <div style={{
-                      background: '#dc2626',
-                      border: '2px solid #991b1b',
-                      color: '#ffffff',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      animation: 'pulse 2s infinite'
-                    }}>
-                      <span>📡</span>
-                      <span>Offline</span>
-                    </div>
-                  )}
-
-                  {/* Offline queue status */}
-                  {offlineQueueStats.total > 0 && (
-                    <div style={{
-                      background: '#f59e0b',
-                      border: '2px solid #d97706',
-                      color: '#ffffff',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      cursor: 'pointer'
-                    }}
-                    title={`Offline queue: ${offlineQueueStats.pending} pending, ${offlineQueueStats.failed} failed`}
-                    onClick={() => alert(`Offline Queue Status:\n\nPending: ${offlineQueueStats.pending}\nFailed: ${offlineQueueStats.failed}\nTotal: ${offlineQueueStats.total}`)}
-                    >
-                      <span>📝</span>
-                      <span>{offlineQueueStats.total}</span>
-                    </div>
-                  )}
 
                 </div>
               </div>
@@ -1520,6 +1465,7 @@ function App() {
                   getTotalForDate={getTotalForDate}
                   onEditMaterial={handleEditMaterial}
                   onDeleteMaterial={handleReturnMaterialToInventory}
+                  searchTerm={searchTerm}
                 />
               </div>
             </div>

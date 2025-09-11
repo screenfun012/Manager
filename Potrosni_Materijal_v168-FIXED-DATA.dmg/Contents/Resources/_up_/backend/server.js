@@ -181,50 +181,6 @@ app.put('/api/materials/:id', (req, res) => {
   });
 });
 
-// PUT endpoint za ažuriranje količine materijala
-app.put('/api/materials/:id/quantity', (req, res) => {
-  const { id } = req.params;
-  const { stockQuantity } = req.body;
-
-  if (stockQuantity === undefined || stockQuantity < 0) {
-    return res.status(400).json({ error: 'Količina mora biti pozitivna' });
-  }
-
-  const query = 'UPDATE materials SET stockQuantity = ? WHERE id = ?';
-  const params = [stockQuantity, id];
-
-  db.run(query, params, function(err) {
-    if (err) {
-      console.error('Greška pri ažuriranju količine materijala:', err);
-      return res.status(500).json({ error: 'Greška pri ažuriranju količine materijala' });
-    }
-    
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Materijal nije pronađen' });
-    }
-    
-    // Emituj event za admin panel
-    console.log('🔄 Količina materijala ažurirana, emitujem evente...');
-    
-    // Dohvati ažurirani materijal
-    db.get('SELECT * FROM materials WHERE id = ?', [id], (err, material) => {
-      if (!err && material) {
-        // Broadcast to SSE clients
-        broadcastEvent('MATERIAL_UPDATED', material);
-        broadcastEvent('DATA_SYNC_NEEDED', { type: 'material_quantity_updated', data: material });
-        
-        res.json({ 
-          message: 'Količina materijala uspešno ažurirana',
-          material: material,
-          event: 'MATERIAL_UPDATED'
-        });
-      } else {
-        res.json({ message: 'Količina materijala uspešno ažurirana' });
-      }
-    });
-  });
-});
-
 app.delete('/api/materials/:id', (req, res) => {
   const { id } = req.params;
 
@@ -529,13 +485,13 @@ app.delete('/api/assignments/material/:materialId', (req, res) => {
   });
 });
 
-// DELETE assignments by material and employee
-app.delete('/api/assignments/material/:materialId/employee/:employeeName', (req, res) => {
-  const { materialId, employeeName } = req.params;
+// DELETE assignments for specific material and employee
+app.delete('/api/assignments/material/:materialId/employee/:employeeId', (req, res) => {
+  const { materialId, employeeId } = req.params;
   
-  const query = 'DELETE FROM assignments WHERE material_id = ? AND employee_id IN (SELECT id FROM employees WHERE name = ?)';
+  const query = 'DELETE FROM assignments WHERE material_id = ? AND employee_id = ?';
   
-  db.run(query, [materialId, employeeName], function(err) {
+  db.run(query, [materialId, employeeId], function(err) {
     if (err) {
       console.error('Greška pri brisanju zaduženja za materijal i zaposlenog:', err);
       return res.status(500).json({ error: 'Greška pri brisanju zaduženja za materijal i zaposlenog' });
@@ -544,13 +500,23 @@ app.delete('/api/assignments/material/:materialId/employee/:employeeName', (req,
     const deletedCount = this.changes;
     
     // Emituj event za admin panel
-    console.log(`🔄 ${deletedCount} zaduženja obrisano za materijal ${materialId} i zaposlenog ${employeeName}, emitujem evente...`);
-    broadcastEvent('ASSIGNMENTS_DELETED_BY_MATERIAL_AND_EMPLOYEE', { materialId: parseInt(materialId), employeeName, count: deletedCount });
-    broadcastEvent('DATA_SYNC_NEEDED', { type: 'assignments_deleted_by_material_and_employee', data: { materialId: parseInt(materialId), employeeName, count: deletedCount } });
+    console.log(`🔄 ${deletedCount} zaduženja obrisano za materijal ${materialId} i zaposlenog ${employeeId}, emitujem evente...`);
+    broadcastEvent('ASSIGNMENTS_DELETED_BY_MATERIAL_AND_EMPLOYEE', { 
+      materialId: parseInt(materialId), 
+      employeeId: parseInt(employeeId), 
+      count: deletedCount 
+    });
+    broadcastEvent('DATA_SYNC_NEEDED', { 
+      type: 'assignments_deleted_by_material_and_employee', 
+      data: { materialId: parseInt(materialId), employeeId: parseInt(employeeId), count: deletedCount } 
+    });
     
     res.json({ 
-      message: `${deletedCount} zaduženja obrisano za materijal ${materialId} i zaposlenog ${employeeName}`,
-      deletedCount 
+      message: `${deletedCount} zaduženja uspešno obrisano za materijal i zaposlenog`,
+      materialId: parseInt(materialId),
+      employeeId: parseInt(employeeId),
+      deletedCount,
+      event: 'ASSIGNMENTS_DELETED_BY_MATERIAL_AND_EMPLOYEE'
     });
   });
 });
@@ -1247,6 +1213,90 @@ app.post('/api/admin/rebuild-cache', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// PUT endpoint za ažuriranje količine zaduženja
+app.put('/api/assignments/:assignmentId/quantity', (req, res) => {
+  const { assignmentId } = req.params;
+  const { newQuantity } = req.body;
+  
+  console.log(`🔄 Ažuriranje količine zaduženja ${assignmentId} na ${newQuantity}`);
+  
+  if (!newQuantity || newQuantity < 0) {
+    return res.status(400).json({ 
+      error: 'Neispravna količina',
+      details: 'Količina mora biti pozitivan broj'
+    });
+  }
+  
+  // Prvo dohvati trenutno zaduženje
+  const getAssignmentQuery = 'SELECT * FROM assignments WHERE id = ?';
+  db.get(getAssignmentQuery, [assignmentId], (err, assignment) => {
+    if (err) {
+      console.error('❌ Greška pri dohvatanju zaduženja:', err);
+      return res.status(500).json({ 
+        error: 'Greška pri dohvatanju zaduženja',
+        details: err.message 
+      });
+    }
+    
+    if (!assignment) {
+      return res.status(404).json({ 
+        error: 'Zaduženje nije pronađeno',
+        details: `Zaduženje sa ID ${assignmentId} ne postoji`
+      });
+    }
+    
+    // Ažuriraj količinu i označi kao izmenjeno
+    const updateQuery = `
+      UPDATE assignments 
+      SET quantity = ?, 
+          modified_quantity = ?, 
+          is_modified = 1, 
+          modified_at = CURRENT_TIMESTAMP,
+          original_quantity = CASE 
+            WHEN original_quantity IS NULL THEN quantity 
+            ELSE original_quantity 
+          END
+      WHERE id = ?
+    `;
+    
+    db.run(updateQuery, [newQuantity, newQuantity, assignmentId], function(err) {
+      if (err) {
+        console.error('❌ Greška pri ažuriranju količine:', err);
+        return res.status(500).json({ 
+          error: 'Greška pri ažuriranju količine',
+          details: err.message 
+        });
+      }
+      
+      console.log(`✅ Količina zaduženja ${assignmentId} ažurirana na ${newQuantity}`);
+      
+      // Emituj event za real-time ažuriranje
+      eventBus.emit('assignmentUpdated', {
+        assignmentId,
+        materialId: assignment.material_id,
+        employeeId: assignment.employee_id,
+        newQuantity,
+        isModified: true,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json({
+        success: true,
+        message: 'Količina uspešno ažurirana',
+        assignment: {
+          id: assignmentId,
+          materialId: assignment.material_id,
+          employeeId: assignment.employee_id,
+          quantity: newQuantity,
+          isModified: true,
+          originalQuantity: assignment.original_quantity || assignment.quantity,
+          modifiedAt: new Date().toISOString()
+        }
+      });
+    });
+  });
 });
 
 // Health check endpoint

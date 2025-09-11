@@ -3186,3 +3186,99 @@ select.form-control::-webkit-scrollbar-thumb:hover {
     margin-left: 0;
   }
 }
+
+/* Fantastical Calendar Styles */
+.fantastical-calendar {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 2rem;
+  color: #ffffff;
+}
+
+.fantastical-month-view {
+  background: #374151;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.month-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.weekday-header {
+  text-align: center;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 0.5rem;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+.month-day {
+  min-height: 80px;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.month-day:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.month-day.today {
+  border-color: #dc2626;
+  border-width: 2px;
+}
+
+.month-day.selected {
+  background: #dc2626;
+  color: white;
+}
+
+.month-day.has-assignments {
+  background: #10b981 !important;
+  color: white !important;
+  border-color: #059669 !important;
+  font-weight: 600;
+}
+
+.month-day.has-assignments:hover {
+  background: #059669 !important;
+}
+
+.day-number {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.month-event {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.more-events {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: center;
+}

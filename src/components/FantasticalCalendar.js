@@ -147,6 +147,21 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
     });
   };
 
+  // Check if material was assigned on a specific date
+  const hasAssignmentsOnDate = (date) => {
+    if (!assignments || assignments.length === 0) return false;
+    
+    const dateStr = date.toISOString().split('T')[0];
+    
+    return assignments.some(material => {
+      // Check if material has quantities for this date
+      if (material.quantities && material.quantities[dateStr]) {
+        return material.quantities[dateStr] > 0;
+      }
+      return false;
+    });
+  };
+
   // Get events for current view
   const getEventsForView = () => {
     const startDate = new Date(currentDate);
@@ -401,12 +416,17 @@ const FantasticalCalendar = ({ selectedPeriod, onPeriodChange, onDateSelect, ass
             const dayEvents = getEventsForDate(day);
             const isToday = day.toDateString() === new Date().toDateString();
             const isSelected = day.toDateString() === selectedDate.toDateString();
+            const hasAssignments = hasAssignmentsOnDate(day);
             
             return (
               <div 
                 key={day.toISOString()} 
-                className={`month-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                className={`month-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${hasAssignments ? 'has-assignments' : ''}`}
                 onClick={() => handleDateClick(day)}
+                style={{
+                  backgroundColor: hasAssignments ? '#10b981' : 'transparent',
+                  color: hasAssignments ? 'white' : 'inherit'
+                }}
               >
                 <div className="day-number">{day.getDate()}</div>
                 <div className="day-events">

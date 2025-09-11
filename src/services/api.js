@@ -68,6 +68,14 @@ export const materialsAPI = {
       method: 'DELETE',
     });
   },
+
+  // Ažuriraj količinu materijala (za vraćanje u magacin)
+  updateQuantity: async (id, newQuantity) => {
+    return await apiCall(`/materials/${id}/quantity`, {
+      method: 'PUT',
+      body: JSON.stringify({ stockQuantity: newQuantity }),
+    });
+  },
 };
 
 // API za zaposlene
@@ -149,6 +157,13 @@ export const assignmentsAPI = {
   // Obriši sva zaduženja za materijal
   deleteByMaterialId: async (materialId) => {
     return await apiCall(`/assignments/material/${materialId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Obriši zaduženje po materijalu i zaposlenom
+  deleteByMaterialAndEmployee: async (materialId, employeeName) => {
+    return await apiCall(`/assignments/material/${materialId}/employee/${encodeURIComponent(employeeName)}`, {
       method: 'DELETE',
     });
   },

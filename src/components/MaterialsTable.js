@@ -115,14 +115,15 @@ const MaterialsTable = ({ materials, dates, onQuantityChange, getTotalForCategor
     );
   };
 
-  // Grupišemo materijale po radniku (assignedTo + department)
+  // Grupišemo materijale po radniku (employeeId)
   const groupedByEmployee = materials.reduce((acc, material) => {
-    const employeeKey = `${material.assignedTo}_${material.department}`;
+    const employeeKey = material.employeeId; // Koristimo samo employeeId
 
     if (!acc[employeeKey]) {
       acc[employeeKey] = {
         assignedTo: material.assignedTo,
         department: material.department,
+        employeeId: material.employeeId,
         materials: {}
       };
     }
