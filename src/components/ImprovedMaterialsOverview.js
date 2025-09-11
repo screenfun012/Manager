@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { User, Package, Calendar, Edit, Trash2, Save, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { User, Package, Calendar, Edit, Trash2, Save, X, AlertTriangle, Loader2, Plus } from 'lucide-react';
 import EditMaterialForm from './EditMaterialForm';
 
 const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTotalForCategory, getTotalForDate, onEditMaterial, onDeleteMaterial, searchTerm = '' }) => {
@@ -21,6 +21,11 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   const [editingQuantity, setEditingQuantity] = useState(null);
   const [newQuantity, setNewQuantity] = useState('');
   const [editedQuantities, setEditedQuantities] = useState(new Set());
+  
+  // Modal za dodavanje materijala na prazan datum
+  const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
+  const [addingToDate, setAddingToDate] = useState(null);
+  const [addingToMaterial, setAddingToMaterial] = useState(null);
 
   // Učitaj editovane količine iz localStorage
   React.useEffect(() => {
@@ -159,7 +164,9 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
         date,
         quantity: currentValue,
         x: rect.left + rect.width / 2,
-        y: rect.top - 10
+        y: rect.top - 10,
+        width: rect.width,
+        height: rect.height
       });
     } else {
       setTooltipData(null);
@@ -201,6 +208,14 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
     setShowEditQuantityModal(true);
   };
 
+  // Funkcije za dodavanje materijala na prazan datum
+  const handleAddMaterialToDate = (material, date) => {
+    setAddingToMaterial(material);
+    setAddingToDate(date);
+    setNewQuantity('1'); // Default količina
+    setShowAddMaterialModal(true);
+  };
+
   const handleSaveQuantity = () => {
     if (editingQuantity && newQuantity !== '') {
       const newQty = parseInt(newQuantity);
@@ -232,6 +247,29 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   const handleCancelEditQuantity = () => {
     setShowEditQuantityModal(false);
     setEditingQuantity(null);
+    setNewQuantity('');
+  };
+
+  const handleSaveAddMaterial = () => {
+    if (addingToMaterial && addingToDate && newQuantity !== '') {
+      const newQty = parseInt(newQuantity);
+      if (newQty > 0) {
+        // Pozovi onQuantityChange da doda količinu
+        onQuantityChange(addingToMaterial.id, addingToDate, newQty);
+        
+        // Zatvori modal
+        setShowAddMaterialModal(false);
+        setAddingToMaterial(null);
+        setAddingToDate(null);
+        setNewQuantity('');
+      }
+    }
+  };
+
+  const handleCancelAddMaterial = () => {
+    setShowAddMaterialModal(false);
+    setAddingToMaterial(null);
+    setAddingToDate(null);
     setNewQuantity('');
   };
 
@@ -397,15 +435,38 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
                             borderRadius: '6px',
                             padding: '0.5rem',
                             textAlign: 'center',
-                            cursor: hasValue ? 'pointer' : 'default',
+                            cursor: 'pointer',
                             transition: 'all 0.2s ease',
-                            position: 'relative'
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: '60px'
                           }}
                           onMouseEnter={(e) => handleCellHover(material, date, currentValue, e)}
                           onMouseLeave={handleCellLeave}
-                          onClick={() => hasValue && handleEditQuantity(material, date, currentValue)}
+                          onClick={() => {
+                            if (hasValue) {
+                              handleEditQuantity(material, date, currentValue);
+                            } else {
+                              handleAddMaterialToDate(material, date);
+                            }
+                          }}
+                          title={hasValue ? 'Kliknite da izmenite količinu' : 'Kliknite da dodate materijal'}
                         >
-                          {date}
+                          <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                            {date}
+                          </div>
+                          {hasValue ? (
+                            <div style={{ fontSize: '1rem', fontWeight: '600' }}>
+                              {currentValue}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>
+                              <Plus size={16} />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -607,32 +668,71 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
           style={{
             position: 'fixed',
             left: tooltipData.x,
-            top: tooltipData.y,
+            top: tooltipData.y - 5,
             transform: 'translateX(-50%)',
             background: '#1f2937',
-            border: '1px solid #374151',
+            border: '2px solid #374151',
             borderRadius: '8px',
             padding: '0.75rem',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.7)',
             zIndex: 1000,
-            minWidth: '200px',
-            pointerEvents: 'none'
+            minWidth: '220px',
+            pointerEvents: 'none',
+            fontSize: '0.875rem'
           }}
         >
-          <div style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-            📅 {tooltipData.date}
+          <div style={{ 
+            color: '#ffffff', 
+            fontSize: '0.875rem', 
+            fontWeight: '600', 
+            marginBottom: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <Calendar size={14} color="#60a5fa" />
+            {tooltipData.date}
           </div>
-          <div style={{ color: '#10b981', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
-            📦 {tooltipData.material.name}
+          <div style={{ 
+            color: '#10b981', 
+            fontSize: '0.875rem', 
+            marginBottom: '0.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <Package size={14} color="#10b981" />
+            {tooltipData.material.name}
           </div>
-          <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>
-            👤 {tooltipData.material.assignedTo}
+          <div style={{ 
+            color: '#9ca3af', 
+            fontSize: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <User size={12} color="#9ca3af" />
+            {tooltipData.material.assignedTo}
           </div>
-          <div style={{ color: '#60a5fa', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            🔢 Količina: {tooltipData.quantity}
+          <div style={{ 
+            color: '#60a5fa', 
+            fontSize: '0.875rem', 
+            marginTop: '0.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <span style={{ fontWeight: '600' }}>Količina: {tooltipData.quantity}</span>
             {isQuantityEdited(tooltipData.material.id, tooltipData.date) && (
-              <span style={{ color: '#f59e0b', marginLeft: '0.5rem' }}>
-                ✏️ (editovano)
+              <span style={{ 
+                color: '#f59e0b', 
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}>
+                <Edit size={12} />
+                (editovano)
               </span>
             )}
           </div>
@@ -737,119 +837,138 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
 
       {/* Modal za editovanje količine */}
       {showEditQuantityModal && editingQuantity && (
-        <div
-          className="edit-quantity-modal-overlay"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000
-          }}
-          onClick={handleCancelEditQuantity}
-        >
-          <div
-            className="edit-quantity-modal"
-            style={{
-              background: '#1f2937',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              maxWidth: '400px',
-              width: '90%',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.7)',
-              border: '1px solid #374151'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: '700' }}>
-                ✏️ Izmeni količinu
-              </h3>
-              <button
-                onClick={handleCancelEditQuantity}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#9ca3af',
-                  cursor: 'pointer',
-                  fontSize: '1.5rem',
-                  padding: '0.25rem'
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ color: '#60a5fa', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                📅 Datum: <strong>{editingQuantity.date}</strong>
-              </div>
-              <div style={{ color: '#10b981', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                📦 Materijal: <strong>{editingQuantity.material.name}</strong>
-              </div>
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                👤 Zaposleni: <strong>{editingQuantity.material.assignedTo}</strong>
-              </div>
-              
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ color: '#d1d5db', fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
-                  Trenutna količina: <strong style={{ color: '#f59e0b' }}>{editingQuantity.currentValue}</strong>
-                </label>
-                <input
-                  type="number"
-                  value={newQuantity}
-                  onChange={(e) => setNewQuantity(e.target.value)}
-                  placeholder="Unesite novu količinu"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '6px',
-                    border: '1px solid #4b5563',
-                    background: '#374151',
-                    color: '#ffffff',
-                    fontSize: '1rem'
-                  }}
-                  autoFocus
-                />
-                <div style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  💡 Unesite 0 da uklonite zaduženje ili veću vrednost da povećate
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fef3c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Edit size={20} color="#f59e0b" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.125rem', fontWeight: '600' }}>
+                    Izmeni količinu
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#9ca3af', fontSize: '0.875rem' }}>
+                    Promenite količinu zaduženog materijala
+                  </p>
                 </div>
               </div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button
+            
+            <div className="modal-body">
+              <div style={{ padding: '1rem 0' }}>
+                <div style={{
+                  backgroundColor: '#374151',
+                  border: '1px solid #4b5563',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  margin: '1rem 0'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Datum:</span>
+                    <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {editingQuantity.date}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Materijal:</span>
+                    <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500', maxWidth: '200px', textAlign: 'right' }}>
+                      {editingQuantity.material.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Zaposleni:</span>
+                    <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {editingQuantity.material.assignedTo}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Trenutna količina:</span>
+                    <span style={{ color: '#f59e0b', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {editingQuantity.currentValue} kom
+                    </span>
+                  </div>
+                </div>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ color: '#d1d5db', fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
+                    Nova količina:
+                  </label>
+                  <input
+                    type="number"
+                    value={newQuantity}
+                    onChange={(e) => setNewQuantity(e.target.value)}
+                    placeholder="Unesite novu količinu"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '6px',
+                      border: '2px solid #4b5563',
+                      background: '#1f2937',
+                      color: '#ffffff',
+                      fontSize: '1rem',
+                      transition: 'border-color 0.2s ease'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#dc2626'}
+                    onBlur={(e) => e.target.style.borderColor = '#4b5563'}
+                    autoFocus
+                  />
+                </div>
+                
+                <div style={{
+                  backgroundColor: '#7f1d1d',
+                  border: '1px solid #dc2626',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <AlertTriangle size={16} color="#fca5a5" />
+                  <span style={{ color: '#fca5a5', fontSize: '0.875rem', fontWeight: '500' }}>
+                    Unesite 0 da uklonite zaduženje ili veću vrednost da povećate
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="form-actions">
+              <button 
                 onClick={handleCancelEditQuantity}
-                style={{
-                  background: '#374151',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
+                className="btn btn-secondary"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
                   padding: '0.5rem 1rem',
-                  cursor: 'pointer',
                   fontSize: '0.875rem'
                 }}
               >
+                <X size={16} />
                 Otkaži
               </button>
-              <button
+              <button 
                 onClick={handleSaveQuantity}
-                style={{
-                  background: '#10b981',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
+                className="btn"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
                   padding: '0.5rem 1rem',
-                  cursor: 'pointer',
                   fontSize: '0.875rem',
-                  fontWeight: '600'
+                  background: '#10b981',
+                  border: '2px solid #059669'
                 }}
               >
+                <Save size={16} />
                 Sačuvaj
               </button>
             </div>
@@ -857,7 +976,141 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
         </div>
       )}
 
-      {/* Modal je uklonjen - koristi se samo modal iz App.js */}
+      {/* Modal za dodavanje materijala na prazan datum */}
+      {showAddMaterialModal && addingToMaterial && addingToDate && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f0fdf4',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Plus size={20} color="#10b981" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.125rem', fontWeight: '600' }}>
+                    Dodaj materijal
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#9ca3af', fontSize: '0.875rem' }}>
+                    Dodajte količinu materijala za izabrani datum
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-body">
+              <div style={{ padding: '1rem 0' }}>
+                <div style={{
+                  backgroundColor: '#374151',
+                  border: '1px solid #4b5563',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  margin: '1rem 0'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Datum:</span>
+                    <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {addingToDate}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Materijal:</span>
+                    <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500', maxWidth: '200px', textAlign: 'right' }}>
+                      {addingToMaterial.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Zaposleni:</span>
+                    <span style={{ color: '#ffffff', fontSize: '0.875rem', fontWeight: '500' }}>
+                      {addingToMaterial.assignedTo}
+                    </span>
+                  </div>
+                </div>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ color: '#d1d5db', fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
+                    Količina:
+                  </label>
+                  <input
+                    type="number"
+                    value={newQuantity}
+                    onChange={(e) => setNewQuantity(e.target.value)}
+                    placeholder="Unesite količinu"
+                    min="1"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '6px',
+                      border: '2px solid #4b5563',
+                      background: '#1f2937',
+                      color: '#ffffff',
+                      fontSize: '1rem',
+                      transition: 'border-color 0.2s ease'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#dc2626'}
+                    onBlur={(e) => e.target.style.borderColor = '#4b5563'}
+                    autoFocus
+                  />
+                </div>
+                
+                <div style={{
+                  backgroundColor: '#1e40af',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <AlertTriangle size={16} color="#93c5fd" />
+                  <span style={{ color: '#93c5fd', fontSize: '0.875rem', fontWeight: '500' }}>
+                    Materijal će biti zadužen iz magacina i prikazan na dashboard-u
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="form-actions">
+              <button 
+                onClick={handleCancelAddMaterial}
+                className="btn btn-secondary"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <X size={16} />
+                Otkaži
+              </button>
+              <button 
+                onClick={handleSaveAddMaterial}
+                className="btn"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  background: '#10b981',
+                  border: '2px solid #059669'
+                }}
+              >
+                <Plus size={16} />
+                Dodaj
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

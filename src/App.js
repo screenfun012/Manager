@@ -1195,23 +1195,31 @@ function App() {
     }
   };
 
-  const handleQuantityChange = (materialId, date, value) => {
+  const handleQuantityChange = (compositeMaterialId, date, value) => {
     console.log('🔍 ====== POČETAK handleQuantityChange ======');
-    console.log('🔍 materialId:', materialId, 'date:', date, 'value:', value);
+    console.log('🔍 compositeMaterialId:', compositeMaterialId, 'date:', date, 'value:', value);
     console.log('🔍 Trenutno materials state PRE:', materials);
     
-    // Računam razliku u količini za ažuriranje magacina
-    const currentMaterial = materials.find(m => m.id === materialId);
-    const oldQuantity = currentMaterial ? (currentMaterial.quantities[date] || 0) : 0;
+    // Find the specific dashboard card using its composite ID
+    const currentMaterialCard = materials.find(m => m.id === compositeMaterialId);
+    
+    if (!currentMaterialCard) {
+      console.error('❌ Nije pronađena kartica materijala za ažuriranje:', compositeMaterialId);
+      return;
+    }
+    
+    const originalMaterialId = currentMaterialCard.materialId; // Extract the original material ID
+    const oldQuantity = currentMaterialCard.quantities[date] || 0;
     const newQuantity = Number(value) || 0;
     const quantityDifference = newQuantity - oldQuantity;
     
     console.log('🔍 Razlika u količini:', { oldQuantity, newQuantity, quantityDifference });
+    console.log('🔍 Original material ID:', originalMaterialId);
     
     // Ažuriram materijale (početna strana)
     setMaterials(prev => {
       const updatedMaterials = prev.map(material => {
-        if (material.id === materialId) {
+        if (material.id === compositeMaterialId) {
           console.log('🔍 Ažuriram materijal:', material.name);
           const newQuantities = { ...material.quantities, [date]: newQuantity };
           const newTotal = Object.values(newQuantities).reduce((sum, qty) => sum + qty, 0);
@@ -1236,7 +1244,7 @@ function App() {
     if (quantityDifference !== 0) {
       setMaterialsDB(prev => {
         const updatedMaterialsDB = prev.map(material => {
-          if (material.id === materialId) {
+          if (material.id === originalMaterialId) { // Use originalMaterialId here
             // Vraćam staru količinu u magacin i oduzimam novu
             const oldStockQuantity = (material?.stockQuantity || 0) + oldQuantity; // Vraćam staru
             const newStockQuantity = oldStockQuantity - newQuantity; // Oduzimam novu
@@ -1260,9 +1268,9 @@ function App() {
         saveMaterialsDBToStorage(updatedMaterialsDB);
         
         // Ažuriram i u bazi podataka
-        const materialToUpdate = updatedMaterialsDB.find(m => m.id === materialId);
+        const materialToUpdate = updatedMaterialsDB.find(m => m.id === originalMaterialId); // Use originalMaterialId here
         if (materialToUpdate) {
-          materialsAPI.updateQuantity(materialId, materialToUpdate.stockQuantity)
+          materialsAPI.updateQuantity(originalMaterialId, materialToUpdate.stockQuantity) // Use originalMaterialId here
             .then(() => {
               console.log('✅ Magacin ažuriran u bazi:', materialToUpdate.name, materialToUpdate.stockQuantity);
             })
