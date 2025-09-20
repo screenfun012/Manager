@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const { db, initDatabase, loadSampleData } = require('./database');
+const { db, initDatabase, initializeEmptyDatabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -60,7 +60,7 @@ const broadcastEvent = (eventType, data) => {
 
 // Inicijalizacija baze
 initDatabase();
-loadSampleData();
+initializeEmptyDatabase();
 
 // API Routes - Materijali
 app.get('/api/materials', (req, res) => {

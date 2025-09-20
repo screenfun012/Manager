@@ -4,7 +4,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Production build
+# Production builds
 build/
 dist/
 
@@ -21,16 +21,21 @@ dist/
 *.swp
 *.swo
 
-# OS files
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Logs
-logs
+logs/
 *.log
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
@@ -56,11 +61,18 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# SQLite database files
-*.db
-*.sqlite
-*.sqlite3
+# Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Database
+backend/database.sqlite
+backend/database.sqlite-journal
 
 # Temporary files
-tmp/
-temp/
+*.tmp
+*.temp
+
+# Build artifacts (keep for distribution)
+# *.dmg
+# *.app

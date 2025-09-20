@@ -51,29 +51,11 @@ const initDatabase = () => {
   });
 };
 
-// Funkcija za učitavanje postojećih podataka
-const loadSampleData = () => {
-  // Učitavanje materijala
-  const materials = [
-    { category: 'POTROSNI MATERIJAL', name: 'nitro razredjivac pentico', stockQuantity: 50, unit: 'kom', minStock: 10 },
-    { category: 'POTROSNI MATERIJAL', name: 'odmascivac forch eco 500ml', stockQuantity: 100, unit: 'kom', minStock: 20 },
-    { category: 'POTROSNI MATERIJAL', name: 'crni silikon DIHT MASA CRNA DIRKO 320C', stockQuantity: 25, unit: 'kom', minStock: 5 },
-    { category: 'ZASTITNA OPREMA', name: 'rukavice radne', stockQuantity: 200, unit: 'par', minStock: 50 },
-    { category: 'ZASTITNA OPREMA', name: 'naočare zaštitne', stockQuantity: 30, unit: 'kom', minStock: 10 },
-    { category: 'MESINGANE CETKE', name: 'cetka mesingana 2"', stockQuantity: 15, unit: 'kom', minStock: 3 },
-    { category: 'HIGIJENA', name: 'sapun za ruke', stockQuantity: 50, unit: 'kom', minStock: 10 },
-    { category: 'AMBALAZA', name: 'kartonske kutije', stockQuantity: 200, unit: 'kom', minStock: 50 },
-    { category: 'ALAT', name: 'ključ 17', stockQuantity: 8, unit: 'kom', minStock: 2 }
-  ];
-
-  // Učitavanje zaposlenih
-  const employees = [
-    { name: 'Marko Petrović', department: 'Proizvodnja', position: 'Proizvodni radnik', phone: '061-123-456' },
-    { name: 'Ana Jovanović', department: 'Održavanje', position: 'Tehničar', phone: '061-234-567' },
-    { name: 'Petar Nikolić', department: 'Kontrola kvaliteta', position: 'Kontrolor', phone: '061-345-678' }
-  ];
-
-  // Provera da li već postoje podaci
+// Funkcija za inicijalizaciju prazne baze (bez sample podataka)
+const initializeEmptyDatabase = () => {
+  console.log('🗄️ Inicijalizujem praznu SQLite bazu...');
+  
+  // Provera da li baza postoji i da li je prazna
   db.get('SELECT COUNT(*) as count FROM materials', (err, row) => {
     if (err) {
       console.error('Greška pri proveri materijala:', err);
@@ -81,27 +63,12 @@ const loadSampleData = () => {
     }
 
     if (row.count === 0) {
-      console.log('📥 Učitavam sample podatke...');
-      
-      // Učitavanje materijala
-      const materialStmt = db.prepare('INSERT INTO materials (category, name, stockQuantity, unit, minStock) VALUES (?, ?, ?, ?, ?)');
-      materials.forEach(material => {
-        materialStmt.run(material.category, material.name, material.stockQuantity, material.unit, material.minStock);
-      });
-      materialStmt.finalize();
-
-      // Učitavanje zaposlenih
-      const employeeStmt = db.prepare('INSERT INTO employees (name, department, position, phone) VALUES (?, ?, ?, ?)');
-      employees.forEach(employee => {
-        employeeStmt.run(employee.name, employee.department, employee.position, employee.phone);
-      });
-      employeeStmt.finalize();
-
-      console.log('✅ Sample podaci učitani');
+      console.log('✨ Baza je prazna - spremna za korišćenje');
+      console.log('📝 Korisnik može da doda materijale i zaposlene preko aplikacije');
     } else {
-      console.log('ℹ️ Baza već sadrži podatke');
+      console.log(`ℹ️ Baza već sadrži ${row.count} materijala`);
     }
   });
 };
 
-module.exports = { db, initDatabase, loadSampleData };
+module.exports = { db, initDatabase, initializeEmptyDatabase };

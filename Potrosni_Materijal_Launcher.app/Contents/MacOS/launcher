@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Launcher script za Potrošni Materijal aplikaciju
+# Ovaj script pokreće backend server i zatim glavnu aplikaciju
+
+echo "🚀 Pokretanje Potrošni Materijal aplikacije..."
+
+# Pronađi putanju do aplikacije
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+APP_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
+
+# Pronađi backend folder
+BACKEND_DIR="$APP_DIR/backend"
+
+# Proveri da li je backend server već pokrenut
+if lsof -Pi :5001 -sTCP:LISTEN -t >/dev/null ; then
+    echo "✅ Backend server već radi na portu 5001"
+else
+    echo "🔄 Pokretanje backend servera..."
+    
+    # Pokreni backend server u pozadini
+    cd "$BACKEND_DIR"
+    node server.js &
+    BACKEND_PID=$!
+    
+    # Čekaj da se backend server pokrene
+    echo "⏳ Čekam da se backend server pokrene..."
+    for i in {1..10}; do
+        if curl -s http://localhost:5001/api/health > /dev/null; then
+            echo "✅ Backend server uspešno pokrenut!"
+            break
+        fi
+        echo "   Pokušavam $i/10..."
+        sleep 2
+    done
+fi
+
+# Pronađi glavnu aplikaciju
+MAIN_APP="$APP_DIR/Potrosni Materijal.app"
+
+if [ -d "$MAIN_APP" ]; then
+    echo "🖥️ Pokretanje glavne aplikacije..."
+    open "$MAIN_APP"
+    
+    # Čekaj da se glavna aplikacija zatvori
+    while pgrep -f "Potrosni Materijal" > /dev/null; do
+        sleep 1
+    done
+    
+    # Kada se glavna aplikacija zatvori, zaustavi backend server
+    if [ ! -z "$BACKEND_PID" ]; then
+        echo "🛑 Zaustavljam backend server..."
+        kill $BACKEND_PID 2>/dev/null
+    fi
+else
+    echo "❌ Glavna aplikacija nije pronađena u: $MAIN_APP"
+    exit 1
+fi
+
+echo "👋 Aplikacija zatvorena."

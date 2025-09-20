@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Save, X, Package, Users, Info, AlertTriangle } from 'lucide-react';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import eventBus, { EVENTS } from '../services/eventBus';
+import WarningPopup from './WarningPopup';
+import useWarningPopup from '../hooks/useWarningPopup';
 
 const MaterialAssignmentForm = ({ 
   materialsDB, 
@@ -20,6 +22,14 @@ const MaterialAssignmentForm = ({
 
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  
+  // Warning popup hook
+  const { popup, showFieldWarning, hideWarning } = useWarningPopup();
+  
+  // Refs za polja
+  const materialRef = useRef(null);
+  const employeeRef = useRef(null);
+  const quantityRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,13 +51,24 @@ const MaterialAssignmentForm = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.materialId || !formData.employeeId || !formData.quantity) {
-      alert('Molimo popunite sva obavezna polja');
+    // Validacija sa warning popup-ovima
+    if (!formData.materialId) {
+      showFieldWarning('materialId', materialRef.current);
+      return;
+    }
+    
+    if (!formData.employeeId) {
+      showFieldWarning('employeeId', employeeRef.current);
+      return;
+    }
+    
+    if (!formData.quantity || formData.quantity <= 0) {
+      showFieldWarning('quantity', quantityRef.current);
       return;
     }
 
     if (selectedMaterial && formData.quantity > (selectedMaterial?.stockQuantity || 0)) {
-      alert(`Nema dovoljno materijala na stanju. Dostupno: ${selectedMaterial?.stockQuantity || 0} ${selectedMaterial?.unit || ''}`);
+      showFieldWarning('stockQuantity', quantityRef.current);
       return;
     }
 
@@ -102,6 +123,7 @@ const MaterialAssignmentForm = ({
         <div className="form-group">
           <label htmlFor="materialId">Materijal *</label>
           <DropdownButton
+            ref={materialRef}
             id="materialId"
             title={selectedMaterial ? `${selectedMaterial.name}` : "Izaberite materijal"}
             variant="outline-secondary"
@@ -158,6 +180,7 @@ const MaterialAssignmentForm = ({
         <div className="form-group">
           <label htmlFor="employeeId">Zadužen Radnik *</label>
           <DropdownButton
+            ref={employeeRef}
             id="employeeId"
             title={selectedEmployee ? `${selectedEmployee.name}` : "Izaberite radnika"}
             variant="outline-secondary"
@@ -195,6 +218,7 @@ const MaterialAssignmentForm = ({
         <div className="form-group">
           <label htmlFor="quantity">Količina *</label>
           <input
+            ref={quantityRef}
             type="number"
             id="quantity"
             name="quantity"
@@ -303,6 +327,15 @@ const MaterialAssignmentForm = ({
           </button>
         </div>
       </form>
+      
+      {/* Warning Popup */}
+      <WarningPopup
+        isVisible={popup.isVisible}
+        message={popup.message}
+        onClose={hideWarning}
+        position={popup.position}
+        targetElement={popup.targetElement}
+      />
     </div>
   );
 };

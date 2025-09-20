@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import { Save, X, Package, Check } from 'lucide-react';
 import eventBus, { EVENTS } from '../services/eventBus';
+import WarningPopup from './WarningPopup';
+import useWarningPopup from '../hooks/useWarningPopup';
 
 const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +18,15 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
 
   const [useExistingMaterial, setUseExistingMaterial] = useState(false);
   const [selectedExistingMaterial, setSelectedExistingMaterial] = useState(null);
+  
+  // Warning popup hook
+  const { popup, showFieldWarning, hideWarning } = useWarningPopup();
+  
+  // Refs za polja
+  const categoryRef = useRef(null);
+  const nameRef = useRef(null);
+  const stockQuantityRef = useRef(null);
+  const unitRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,8 +39,24 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.category || !formData.name.trim() || !formData.stockQuantity || !formData.unit) {
-      alert('Molimo popunite sva obavezna polja');
+    // Validacija sa warning popup-ovima
+    if (!formData.category) {
+      showFieldWarning('category', categoryRef.current);
+      return;
+    }
+    
+    if (!formData.name.trim()) {
+      showFieldWarning('name', nameRef.current);
+      return;
+    }
+    
+    if (!formData.stockQuantity || formData.stockQuantity <= 0) {
+      showFieldWarning('stockQuantity', stockQuantityRef.current);
+      return;
+    }
+    
+    if (!formData.unit) {
+      showFieldWarning('unit', unitRef.current);
       return;
     }
 
@@ -194,6 +221,7 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
             Kategorija *
           </label>
           <DropdownButton
+            ref={categoryRef}
             id="category"
             title={formData.category || "Izaberi kategoriju"}
             variant="outline-secondary"
@@ -226,6 +254,7 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
             Naziv Materijala *
           </label>
           <input
+            ref={nameRef}
             type="text"
             id="name"
             name="name"
@@ -266,6 +295,7 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
               Početna Količina *
             </label>
             <input
+              ref={stockQuantityRef}
               type="number"
               id="stockQuantity"
               name="stockQuantity"
@@ -283,6 +313,7 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
               Jedinica *
             </label>
             <DropdownButton
+              ref={unitRef}
               id="unit"
               title={formData.unit || "Izaberi jedinicu"}
               variant="outline-secondary"
@@ -343,6 +374,15 @@ const AddMaterialForm = ({ categories, departments, users, materialsDB, onAdd, o
           </button>
         </div>
       </form>
+      
+      {/* Warning Popup */}
+      <WarningPopup
+        isVisible={popup.isVisible}
+        message={popup.message}
+        onClose={hideWarning}
+        position={popup.position}
+        targetElement={popup.targetElement}
+      />
     </div>
   );
 };

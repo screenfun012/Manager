@@ -1,8 +1,16 @@
 {
-  "name": "potrosni-materijal-app",
+  "name": "potrosni-materijal-desktop",
   "version": "1.0.0",
-  "description": "Aplikacija za praćenje potrošnog materijala",
+  "description": "Profesionalna desktop aplikacija za upravljanje potrošnim materijalom sa automatskim pokretanjem backend servera",
   "private": true,
+  "author": "Nikola Dinic",
+  "license": "MIT",
+  "keywords": ["desktop", "material-management", "tauri", "react", "nodejs"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/potrosni-materijal.git"
+  },
+  "homepage": "https://github.com/your-username/potrosni-materijal#readme",
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@tauri-apps/api": "^2.8.0",

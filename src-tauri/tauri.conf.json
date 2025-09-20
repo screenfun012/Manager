@@ -42,8 +42,6 @@
       "icons/1024x1024.png",
       "icons/mr-engines.icns"
     ],
-    "resources": [
-      "../backend/**/*"
-    ]
+    "resources": []
   }
 }

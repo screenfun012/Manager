@@ -438,7 +438,20 @@ function App() {
     };
   }, []);
 
-
+  // useEffect za učitavanje podataka na početku
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        console.log('🔄 Učitavam početne podatke...');
+        await refreshData();
+        console.log('✅ Početni podaci učitani');
+      } catch (error) {
+        console.error('❌ Greška pri učitavanju početnih podataka:', error);
+      }
+    };
+    
+    loadInitialData();
+  }, []);
 
   const handleExcelUpload = (data) => {
     // Process uploaded Excel data
@@ -1483,6 +1496,7 @@ function App() {
               <div className="materials-table">
                 <ImprovedMaterialsOverview
                   materials={getFilteredMaterials}
+                  materialsDB={materialsDB}
                   dates={getDatesForCurrentMonth()}
                   onQuantityChange={handleQuantityChange}
                   getTotalForCategory={getTotalForCategory}

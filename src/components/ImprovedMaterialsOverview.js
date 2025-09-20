@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { User, Package, Calendar, Edit, Trash2, Save, X, AlertTriangle, Loader2, Plus } from 'lucide-react';
 import EditMaterialForm from './EditMaterialForm';
 
-const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTotalForCategory, getTotalForDate, onEditMaterial, onDeleteMaterial, searchTerm = '' }) => {
+const ImprovedMaterialsOverview = ({ materials, materialsDB = [], dates, onQuantityChange, getTotalForCategory, getTotalForDate, onEditMaterial, onDeleteMaterial, searchTerm = '' }) => {
   const [selectedDate, setSelectedDate] = useState('all');
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
@@ -159,14 +159,17 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   const handleCellHover = (material, date, currentValue, event) => {
     if (currentValue > 0) {
       const rect = event.target.getBoundingClientRect();
+      const containerRect = event.target.closest('.materials-overview-container').getBoundingClientRect();
+      
       setTooltipData({
         material,
         date,
         quantity: currentValue,
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10,
+        x: rect.left - containerRect.left + rect.width / 2,
+        y: rect.top - containerRect.top - 10,
         width: rect.width,
-        height: rect.height
+        height: rect.height,
+        targetElement: event.target
       });
     } else {
       setTooltipData(null);
@@ -219,7 +222,18 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
   const handleSaveQuantity = () => {
     if (editingQuantity && newQuantity !== '') {
       const newQty = parseInt(newQuantity);
+      
       if (newQty >= 0) {
+        // Pronađi materijal u materialsDB da proverim maksimalnu količinu
+        const materialInDB = materialsDB.find(m => m.id === editingQuantity.material.id);
+        const maxStock = materialInDB ? (materialInDB.stockQuantity || 0) : 0;
+        
+        // Validacija: nova količina ne sme premašiti maksimalnu količinu u magacinu
+        if (newQty > maxStock) {
+          alert(`🚨 GREŠKA!\n\nRealno stanje se ne poklapa sa unetim iznosom!\n\nMaksimalna količina u magacinu: ${maxStock}\nPokušavate da unesete: ${newQty}\n\nMolimo unesite ispravnu količinu!`);
+          return;
+        }
+        
         // Pozovi onQuantityChange da ažurira količinu
         onQuantityChange(editingQuantity.material.id, editingQuantity.date, newQty);
         
@@ -231,9 +245,8 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
         // Sačuvaj u localStorage
         try {
           localStorage.setItem('editedQuantities', JSON.stringify([...newEditedQuantities]));
-          console.log('🔍 Sačuvane editovane količine:', [...newEditedQuantities]);
         } catch (error) {
-          console.error('🔍 Greška pri čuvanju editovanih količina:', error);
+          console.error('Greška pri čuvanju editovanih količina:', error);
         }
         
         // Zatvori modal
@@ -254,6 +267,16 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
     if (addingToMaterial && addingToDate && newQuantity !== '') {
       const newQty = parseInt(newQuantity);
       if (newQty > 0) {
+        // Pronađi materijal u materialsDB da proverim maksimalnu količinu
+        const materialInDB = materialsDB.find(m => m.id === addingToMaterial.id);
+        const maxStock = materialInDB ? (materialInDB.stockQuantity || 0) : 0;
+        
+        // Validacija: nova količina ne sme premašiti maksimalnu količinu u magacinu
+        if (newQty > maxStock) {
+          alert(`🚨 GREŠKA!\n\nRealno stanje se ne poklapa sa unetim iznosom!\n\nMaksimalna količina u magacinu: ${maxStock}\nPokušavate da unesete: ${newQty}\n\nMolimo unesite ispravnu količinu!`);
+          return;
+        }
+        
         // Pozovi onQuantityChange da doda količinu
         onQuantityChange(addingToMaterial.id, addingToDate, newQty);
         
@@ -425,8 +448,8 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
                       }
                       
                       return (
-                        <div
-                          key={date}
+                        <div 
+                          key={date} 
                           className="materials-quantity-item"
                           style={{
                             backgroundColor,
@@ -456,7 +479,7 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
                           title={hasValue ? 'Kliknite da izmenite količinu' : 'Kliknite da dodate materijal'}
                         >
                           <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
-                            {date}
+                          {date}
                           </div>
                           {hasValue ? (
                             <div style={{ fontSize: '1rem', fontWeight: '600' }}>
@@ -666,7 +689,7 @@ const ImprovedMaterialsOverview = ({ materials, dates, onQuantityChange, getTota
         <div
           className="assignment-tooltip"
           style={{
-            position: 'fixed',
+            position: 'absolute',
             left: tooltipData.x,
             top: tooltipData.y - 5,
             transform: 'translateX(-50%)',
